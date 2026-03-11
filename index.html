@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Recruitment Planner</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
  :root {
@@ -33,7 +34,6 @@
  min-height: 100vh;
  line-height: 1.5;
  }
- /* Subtle grid background */
  body::before {
  content:'';
  position:fixed; inset:0;
@@ -44,7 +44,6 @@
  pointer-events:none; z-index:0;
  }
  .wrap { position:relative; z-index:1; max-width:1480px; margin:0 auto; padding:28px 24px; }
- /* ── HEADER ── */
  header {
  display:flex; align-items:center; justify-content:space-between;
  margin-bottom:24px; padding-bottom:20px;
@@ -68,9 +67,7 @@
  }
  .hdr-stat-val { font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:800; line-height:1; }
  .hdr-stat-lbl { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-top:2px; }
- /* ── LAYOUT ── */
  .layout { display:grid; grid-template-columns:520px 1fr; gap:16px; align-items:start; }
- /* ── PANEL ── */
  .panel {
  background:var(--surface); border:1px solid var(--border); border-radius:12px;
  overflow:hidden;
@@ -96,19 +93,16 @@
  background:var(--surface3); border:1px solid var(--border2);
  color:var(--text2);
  }
- /* ── DRAG LIST ── */
  .drag-list-wrap { position:relative; }
  .drag-list {
  padding:10px; display:flex; flex-direction:column; gap:8px;
- max-height:700px; /* ~5 cards at full height */
+ max-height:700px;
  overflow-y:auto;
  scroll-behavior:smooth;
  }
- /* Custom scrollbar for drag list */
  .drag-list::-webkit-scrollbar { width:4px; }
  .drag-list::-webkit-scrollbar-track { background:transparent; }
  .drag-list::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
- /* Fade gradient at bottom when more cards below */
  .drag-list-fade {
  position:absolute; bottom:0; left:0; right:0; height:60px;
  background:linear-gradient(transparent, var(--surface));
@@ -116,7 +110,6 @@
  transition:opacity 0.2s;
  }
  .drag-list-fade.hidden { opacity:0; }
- /* Scroll hint pill */
  .scroll-hint {
  position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
  font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--muted);
@@ -129,7 +122,7 @@
  border-radius:10px; border:1px solid var(--border);
  background:var(--surface2);
  cursor:grab; position:relative;
- overflow:visible; /* never clip content */
+ overflow:visible;
  transition:border-color 0.15s, background 0.15s, transform 0.15s, box-shadow 0.15s;
  animation:slideIn 0.18s ease forwards;
  }
@@ -141,19 +134,16 @@
  }
  .role-card.dragging { opacity:0.3; transform:scale(0.97); cursor:grabbing; }
  .role-card.drag-target { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
- /* Drag grip — top right corner, absolute so it doesn't compete for space */
  .drag-handle {
  position:absolute; top:10px; right:12px;
  color:var(--muted); font-size:15px; opacity:0.25; cursor:grab; line-height:1;
  transition:opacity 0.15s;
  }
  .role-card:hover .drag-handle { opacity:0.55; }
- /* Coloured left accent bar */
  .card-accent {
  position:absolute; left:0; top:0; bottom:0; width:4px;
  border-radius:4px 0 0 4px;
  }
- /* Card body — rank + all content stacked, no competing right column */
  .card-body { padding:16px 44px 14px 22px; display:flex; gap:14px; align-items:flex-start; }
  .card-rank {
  font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:500;
@@ -161,14 +151,12 @@
  flex-shrink:0;
  }
  .card-main { flex:1; width:100%; }
- /* Role name — fully visible, wraps as needed */
  .card-name {
  font-weight:700; font-size:15px; letter-spacing:-0.3px;
  line-height:1.4; margin-bottom:10px;
  white-space:normal; word-break:break-word;
  overflow:visible; padding-right:4px;
  }
- /* Pills row — priority, status, urgency all on one line, wrap if needed */
  .card-pills {
  display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px;
  }
@@ -195,25 +183,21 @@
  padding:3px 10px; border-radius:20px; text-transform:uppercase; letter-spacing:0.6px;
  white-space:nowrap;
  }
- /* Priority pills */
  .p-critical { background:rgba(168,48,48,0.1); color:var(--red); border:1px solid rgba(168,48,48,0.3); }
  .p-high { background:rgba(163,102,24,0.1); color:var(--amber); border:1px solid rgba(163,102,24,0.3); }
  .p-medium { background:rgba(41,82,196,0.1); color:var(--accent); border:1px solid rgba(41,82,196,0.3); }
  .p-low { background:rgba(26,122,82,0.1); color:var(--green); border:1px solid rgba(26,122,82,0.3); }
- /* Status pills */
  .s-active { background:rgba(26,122,82,0.1); color:var(--green); border:1px solid rgba(26,122,82,0.3); }
  .s-onhold { background:rgba(163,102,24,0.1); color:var(--amber); border:1px solid rgba(163,102,24,0.3); }
  .s-approved { background:rgba(41,82,196,0.1); color:var(--accent); border:1px solid rgba(41,82,196,0.3); }
  .s-pending { background:rgba(79,63,168,0.1); color:var(--purple); border:1px solid rgba(79,63,168,0.3); }
  .s-cancelled { background:rgba(168,48,48,0.08); color:var(--red); border:1px solid rgba(168,48,48,0.25); text-decoration:line-through; }
  .s-filled { background:rgba(26,109,148,0.1); color:var(--sky); border:1px solid rgba(26,109,148,0.3); }
- /* Urgency pills */
  .u-confirmed { background:rgba(26,122,82,0.1); color:var(--green); border:1px solid rgba(26,122,82,0.28); }
  .u-green { background:rgba(26,122,82,0.1); color:var(--green); border:1px solid rgba(26,122,82,0.28); }
  .u-amber { background:rgba(163,102,24,0.1); color:var(--amber); border:1px solid rgba(163,102,24,0.28); }
  .u-red { background:rgba(168,48,48,0.1); color:var(--red); border:1px solid rgba(168,48,48,0.28); }
  .u-nodate { background:var(--surface3); color:var(--muted); border:1px solid var(--border2); }
- /* Card footer — always visible actions */
  .card-footer {
  padding:10px 14px 10px 20px; border-top:1px solid var(--border);
  display:flex; align-items:center; justify-content:space-between;
@@ -235,7 +219,6 @@
  .check-label input:checked ~ .check-text { color:var(--green); }
  .check-label input:checked + .checkmark { background:var(--green); border-color:var(--green); color:#000; }
  .check-label input:checked + .checkmark::after { content:'✓'; font-weight:800; }
- /* Card action buttons — always visible, clearly tappable */
  .card-actions { display:flex; gap:6px; align-items:center; flex-shrink:0; }
  .edit-btn {
  background:rgba(41,82,196,0.08); border:1px solid rgba(41,82,196,0.3);
@@ -254,7 +237,6 @@
  transition:all 0.15s;
  }
  .delete-btn:hover { background:rgba(168,48,48,0.15); border-color:var(--red); }
- /* ── ADD FORM ── */
  .add-form {
  padding:14px; border-top:1px solid var(--border);
  background:var(--surface2);
@@ -303,7 +285,6 @@
  }
  .add-btn:hover { filter:brightness(1.1); transform:translateY(-1px); box-shadow:0 4px 14px rgba(58,101,212,0.35); }
  .add-btn:active { transform:translateY(0); }
- /* ── GANTT ── */
  .gantt-panel { display:flex; flex-direction:column; min-height:520px; }
  .gantt-scroll { overflow-x:auto; flex:1; }
  .gantt-name-col { min-width:200px; max-width:200px; border-right:1px solid var(--border); flex-shrink:0; }
@@ -359,13 +340,11 @@
  letter-spacing:0.3px;
  }
  .g-bar:hover { filter:brightness(1.3); transform:scaleY(1.1); z-index:4; }
- /* On-hold bar — striped */
  .g-bar-onhold {
  background-image:repeating-linear-gradient(
  -45deg, transparent, transparent 4px, rgba(0,0,0,0.15) 4px, rgba(0,0,0,0.15) 8px
  ) !important;
  }
- /* Cancelled bar — faded dashed border */
  .g-bar-cancelled { opacity:0.4 !important; border-style:dashed !important; }
  .g-sal-best, .g-sal-worst {
  position:absolute; height:3px; border-radius:2px;
@@ -377,14 +356,12 @@
  position:absolute; font-family:'IBM Plex Mono',monospace; font-size:10px;
  color:var(--muted); top:50%; transform:translateY(-50%);
  }
- /* Legend */
  .gantt-legend {
  padding:10px 16px; border-top:1px solid var(--border);
  background:var(--surface2); display:flex; flex-wrap:wrap; gap:14px; align-items:center;
  }
  .leg-item { display:flex; align-items:center; gap:6px; font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--muted); }
  .leg-sw { width:20px; height:7px; border-radius:2px; }
- /* Summary cards */
  .summary-row { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:16px; }
  .sum-card {
  background:var(--surface); border:1px solid var(--border); border-radius:10px;
@@ -398,7 +375,6 @@
  .sum-lbl { font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; }
  .sum-val { font-family:'Plus Jakarta Sans',sans-serif; font-size:19px; font-weight:800; letter-spacing:-0.5px; margin-top:1px; }
  .sum-sub { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--muted); }
- /* Empty states */
  .empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:240px; gap:8px; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:11px; }
  .empty-icon { font-size:32px; opacity:0.2; }
  @keyframes slideIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
@@ -413,7 +389,6 @@
  .tt-row { display:flex; justify-content:space-between; gap:16px; }
  .tt-g { color:var(--green); }
  .tt-r { color:var(--red); }
- /* ── EDIT DRAWER ── */
  .drawer-overlay {
  position:fixed; inset:0; background:rgba(0,0,0,0.6);
  backdrop-filter:blur(4px); z-index:200;
@@ -461,9 +436,7 @@
  flex:1; overflow-y:auto; padding:18px 20px;
  display:flex; flex-direction:column; gap:0;
  }
- .drawer-body .form-section-hdr {
- margin-top:8px;
- }
+ .drawer-body .form-section-hdr { margin-top:8px; }
  .drawer-footer {
  padding:14px 20px; border-top:1px solid var(--border);
  background:var(--surface2); flex-shrink:0;
@@ -484,17 +457,14 @@
  font-weight:600; cursor:pointer; transition:all 0.15s;
  }
  .btn-cancel:hover { border-color:var(--border); color:var(--text); }
- /* Change log dot on cards that have been edited */
  .edited-dot {
  width:5px; height:5px; border-radius:50%; background:var(--accent);
  box-shadow:0 0 4px var(--accent); flex-shrink:0;
  display:inline-block; margin-left:4px; vertical-align:middle;
  }
- /* Scrollbar */
  ::-webkit-scrollbar { width:5px; height:5px; }
  ::-webkit-scrollbar-track { background:var(--surface3); }
  ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
- /* ── EXPORT / SAVE BUTTONS ── */
  .toolbar {
  display:flex; gap:8px; align-items:center;
  padding:10px 16px; border-bottom:1px solid var(--border);
@@ -514,7 +484,6 @@
  .tool-btn:hover { border-color:var(--border); color:var(--text); background:var(--surface); }
  .tool-btn.green { border-color:rgba(26,122,82,0.3); color:var(--green); background:rgba(26,122,82,0.07); }
  .tool-btn.green:hover { background:rgba(26,122,82,0.14); }
- /* Save indicator */
  .save-indicator {
  font-family:'IBM Plex Mono',monospace; font-size:9px;
  display:flex; align-items:center; gap:5px; margin-left:auto;
@@ -526,7 +495,6 @@
  .save-indicator.si-busy { color:var(--accent); border-color:rgba(41,82,196,0.35); background:rgba(41,82,196,0.08); }
  .save-indicator.si-err { color:var(--red); border-color:rgba(168,48,48,0.35); background:rgba(168,48,48,0.08); }
  .save-indicator.si-warn { color:var(--amber); border-color:rgba(163,102,24,0.35); background:rgba(163,102,24,0.08); }
- /* ── DARK THEME ── */
  [data-theme="dark"] {
  --bg: #0e1117; --surface: #131720; --surface2: #181d28; --surface3: #1e2434;
  --border: #252c3e; --border2: #2d3550;
@@ -534,23 +502,19 @@
  --purple: #6b5cc4; --sky: #2a8ab8;
  --text: #e4ecf7; --text2: #8896b2; --muted: #4e6080; --drag-bg: #191e2d;
  }
- /* Dark: priority pills */
  [data-theme="dark"] .p-critical { background:rgba(194,64,64,0.12); border-color:rgba(194,64,64,0.28); }
  [data-theme="dark"] .p-high { background:rgba(196,134,31,0.12); border-color:rgba(196,134,31,0.28); }
  [data-theme="dark"] .p-medium { background:rgba(58,101,212,0.12); border-color:rgba(58,101,212,0.28); }
  [data-theme="dark"] .p-low { background:rgba(37,158,111,0.12); border-color:rgba(37,158,111,0.28); }
- /* Dark: status pills */
  [data-theme="dark"] .s-active { background:rgba(37,158,111,0.1); border-color:rgba(37,158,111,0.28); }
  [data-theme="dark"] .s-onhold { background:rgba(196,134,31,0.1); border-color:rgba(196,134,31,0.28); }
  [data-theme="dark"] .s-approved { background:rgba(58,101,212,0.12); border-color:rgba(58,101,212,0.28); }
  [data-theme="dark"] .s-pending { background:rgba(107,92,196,0.12); border-color:rgba(107,92,196,0.28); }
  [data-theme="dark"] .s-cancelled { background:rgba(194,64,64,0.1); border-color:rgba(194,64,64,0.22); }
  [data-theme="dark"] .s-filled { background:rgba(42,138,184,0.1); border-color:rgba(42,138,184,0.28); }
- /* Dark: urgency pills */
  [data-theme="dark"] .u-confirmed,[data-theme="dark"] .u-green { background:rgba(37,158,111,0.1); border-color:rgba(37,158,111,0.22); }
  [data-theme="dark"] .u-amber { background:rgba(196,134,31,0.1); border-color:rgba(196,134,31,0.22); }
  [data-theme="dark"] .u-red { background:rgba(194,64,64,0.1); border-color:rgba(194,64,64,0.22); }
- /* Dark: interactive elements */
  [data-theme="dark"] .card-footer { background:rgba(0,0,0,0.18); }
  [data-theme="dark"] .edit-btn { background:rgba(58,101,212,0.1); border-color:rgba(58,101,212,0.3); }
  [data-theme="dark"] .edit-btn:hover { background:rgba(58,101,212,0.2); }
@@ -564,7 +528,6 @@
  [data-theme="dark"] .save-indicator.si-warn { border-color:rgba(196,134,31,0.3); background:rgba(196,134,31,0.07); }
  [data-theme="dark"] .drawer-close:hover { background:rgba(194,64,64,0.1); }
  [data-theme="dark"] .g-row:hover { background:rgba(58,101,212,0.025); }
- /* ── THEME TOGGLE ── */
  .theme-toggle {
  display:flex; align-items:center; gap:2px;
  background:var(--surface2); border:1px solid var(--border);
@@ -582,10 +545,7 @@
  border:1px solid var(--border);
  box-shadow:0 1px 5px rgba(0,0,0,0.12);
  }
- [data-theme="dark"] .tt-opt.active {
- box-shadow:0 1px 5px rgba(0,0,0,0.4);
- }
- /* ── TAB NAV ── */
+ [data-theme="dark"] .tt-opt.active { box-shadow:0 1px 5px rgba(0,0,0,0.4); }
  .tab-nav {
  display:flex; gap:4px; padding:12px 0;
  border-bottom:1px solid var(--border); margin-bottom:16px;
@@ -608,10 +568,7 @@
  background:var(--muted); transition:background 0.15s;
  }
  .tab-btn.active .tab-dot { background:var(--accent); box-shadow:0 0 5px var(--accent); }
- /* ── DASHBOARD ── */
- .dash-kpi-row {
- display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:16px;
- }
+ .dash-kpi-row { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:16px; }
  .dash-kpi {
  background:var(--surface); border:1px solid var(--border);
  border-radius:10px; padding:14px 16px; position:relative; overflow:hidden;
@@ -624,7 +581,6 @@
  .dash-kpi-val { font-family:'Plus Jakarta Sans',sans-serif; font-size:22px; font-weight:800; letter-spacing:-0.5px; margin:4px 0 2px; line-height:1; }
  .dash-kpi-sub { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--muted); }
  .dash-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
- .dash-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px; }
  .dash-panel {
  background:var(--surface); border:1px solid var(--border);
  border-radius:12px; overflow:hidden;
@@ -642,14 +598,12 @@
  display:inline-block; margin-right:8px;
  }
  .dash-panel-body { padding:14px 16px; }
- /* Horizontal bar rows */
  .stat-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
  .stat-bar-row:last-child { margin-bottom:0; }
  .stat-bar-label { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text2); min-width:80px; }
  .stat-bar-track { flex:1; height:8px; background:var(--surface3); border-radius:4px; overflow:hidden; }
  .stat-bar-fill { height:100%; border-radius:4px; transition:width 0.4s ease; }
  .stat-bar-count { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); min-width:28px; text-align:right; }
- /* Donut chart */
  .donut-wrap { display:flex; align-items:center; gap:20px; padding:4px 0; }
  .donut-chart { position:relative; width:120px; height:120px; flex-shrink:0; border-radius:50%; }
  .donut-hole {
@@ -664,7 +618,6 @@
  .donut-leg-swatch { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
  .donut-leg-lbl { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--text2); flex:1; }
  .donut-leg-val { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--muted); }
- /* Urgency boxes */
  .urg-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
  .urg-box {
  border-radius:8px; padding:12px 14px;
@@ -673,7 +626,6 @@
  }
  .urg-box-val { font-family:'Plus Jakarta Sans',sans-serif; font-size:24px; font-weight:800; line-height:1; color:var(--urg-color, var(--text)); }
  .urg-box-lbl { font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-top:4px; }
- /* Upcoming table */
  .dash-table { width:100%; border-collapse:collapse; }
  .dash-table th {
  font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--muted);
@@ -693,13 +645,11 @@
  .dash-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:280px; gap:8px; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:11px; }
 </style>
 <script>
- /* Apply saved theme immediately to avoid flash of wrong theme */
  (function(){ document.documentElement.dataset.theme = localStorage.getItem('rp-theme') || 'light'; })();
 </script>
 </head>
 <body>
 <div class="wrap">
- <!-- HEADER -->
  <header>
  <div class="header-left">
  <div class="app-icon">📋</div>
@@ -716,7 +666,6 @@
  </div>
  </div>
  </header>
- <!-- TAB NAV -->
  <div class="tab-nav">
  <button class="tab-btn active" id="tab-pipeline" onclick="switchTab('pipeline')">
  <span class="tab-dot"></span>Pipeline
@@ -725,27 +674,21 @@
  <span class="tab-dot"></span>Dashboard
  </button>
  </div>
- <!-- TOOLBAR -->
  <div class="toolbar">
  <span class="toolbar-label">Data</span>
  <button class="tool-btn" onclick="exportCSV()">📄 Export CSV</button>
  <button class="tool-btn" onclick="clearSave()">🗑 Reset data</button>
  <span class="save-indicator" id="saveIndicator">● Initialising…</span>
  </div>
- <!-- ═══ PIPELINE VIEW ═══ -->
  <div id="view-pipeline">
- <!-- SUMMARY ROW -->
  <div class="summary-row" id="summary-row"></div>
- <!-- MAIN LAYOUT -->
  <div class="layout">
- <!-- LEFT: Priority List -->
  <div>
  <div class="panel">
  <div class="panel-header">
  <span class="panel-title">Priority Order</span>
  <span class="badge" id="role-count">0 roles</span>
  </div>
- <!-- Filter bar -->
  <div style="padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;gap:6px;align-items:center;">
  <input id="list-search" class="fi" style="padding:5px 9px;font-size:10px;height:28px;" placeholder="🔍 Search roles..." oninput="filterList()" />
  <select id="list-filter-status" class="fi" style="padding:4px 6px;font-size:10px;height:28px;width:auto;" onchange="filterList()">
@@ -763,7 +706,6 @@
  <div class="drag-list-fade" id="listFade"></div>
  <div class="scroll-hint" id="scrollHint">↓ scroll for more</div>
  </div>
- <!-- ADD FORM -->
  <div class="add-form">
  <div class="fg">
  <label class="fl">Role Title</label>
@@ -830,7 +772,6 @@
  </div>
  </div>
  </div>
- <!-- RIGHT: Gantt -->
  <div class="panel gantt-panel">
  <div class="panel-header">
  <span class="panel-title">Ramp-Up Gantt — Today → Future</span>
@@ -850,13 +791,12 @@
  </div>
  </div>
  </div>
- </div><!-- /view-pipeline -->
- <!-- ═══ DASHBOARD VIEW ═══ -->
+ </div>
  <div id="view-dashboard" style="display:none">
  <div id="dash-inner"></div>
  </div>
-</div><!-- /wrap -->
-<!-- EDIT DRAWER -->
+</div>
+
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
 <div class="drawer" id="editDrawer">
  <div class="drawer-header">
@@ -870,7 +810,7 @@
  <div class="fg">
  <label class="fl">Role Title</label>
  <input class="fi" id="e-name" placeholder="Role title"
-  oninput="document.getElementById('drawer-title').textContent = this.value || 'Role Name'" />
+ oninput="document.getElementById('drawer-title').textContent = this.value || 'Role Name'" />
  </div>
  <div class="fg2">
  <div>
@@ -936,7 +876,73 @@
  </div>
 </div>
 <div class="tooltip" id="tip"></div>
+
 <script>
+// ── SUPABASE ──
+const SUPA_URL = 'https://yxlvfockhdevksurayma.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4bHZmb2NraGRldmtzdXJheW1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDY0MTksImV4cCI6MjA4ODgyMjQxOX0.wKO8OhlcoQplP_roNvjv9qf-FszD-dX6L0XYy0cku7c';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+async function dbLoad() {
+  setStatus('loading');
+  const { data, error } = await sb.from('roles').select('*').order('sort_order', { ascending: true });
+  if (error) { console.error(error); setStatus('error'); return false; }
+  if (data && data.length) {
+    roles = data.map(r => ({
+      id: r.id,
+      name: r.name,
+      dept: r.dept,
+      priority: r.priority,
+      status: r.status,
+      start: r.start_date,
+      end: r.end_date,
+      confirmed: r.confirmed,
+      salBest: r.sal_best,
+      salWorst: r.sal_worst,
+      edited: r.edited,
+      sort_order: r.sort_order
+    }));
+    setStatus('idle');
+    return true;
+  }
+  setStatus('idle');
+  return false;
+}
+
+async function dbInsert(r, sort_order) {
+  const { data, error } = await sb.from('roles').insert([{
+    name: r.name, dept: r.dept, priority: r.priority, status: r.status,
+    start_date: r.start || null, end_date: r.end || null,
+    confirmed: r.confirmed || false,
+    sal_best: r.salBest || null, sal_worst: r.salWorst || null,
+    edited: false, sort_order
+  }]).select().single();
+  if (error) { console.error(error); setStatus('error'); return null; }
+  return data.id;
+}
+
+async function dbUpdate(r, sort_order) {
+  const { error } = await sb.from('roles').update({
+    name: r.name, dept: r.dept, priority: r.priority, status: r.status,
+    start_date: r.start || null, end_date: r.end || null,
+    confirmed: r.confirmed || false,
+    sal_best: r.salBest || null, sal_worst: r.salWorst || null,
+    edited: r.edited || false, sort_order
+  }).eq('id', r.id);
+  if (error) { console.error(error); setStatus('error'); }
+}
+
+async function dbDelete(id) {
+  const { error } = await sb.from('roles').delete().eq('id', id);
+  if (error) { console.error(error); setStatus('error'); }
+}
+
+async function dbUpdateSortOrders() {
+  const updates = roles.map((r, i) => sb.from('roles').update({ sort_order: i }).eq('id', r.id));
+  await Promise.all(updates);
+}
+
+// ── CORE ──
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
 function fmtDate(d){ return d.toISOString().slice(0,10); }
@@ -946,819 +952,550 @@ function addMonths(d,n){ const r=new Date(d); r.setMonth(r.getMonth()+n); return
 function fmtMoney(v){ if(!v&&v!==0) return '—'; return '£'+Number(v).toLocaleString('en-GB'); }
 function fmtDL(d){ return MON[d.getMonth()]+' '+d.getDate()+'\''+String(d.getFullYear()).slice(2); }
 function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-// Colour tokens
+
 const PALETTE = ['#2952c4','#1a7a52','#a36618','#4f3fa8','#903f18','#1a6d94','#7030a0','#a83030'];
 const getColor = i => PALETTE[i % PALETTE.length];
 const PRIORITY_CLASS = { critical:'p-critical', high:'p-high', medium:'p-medium', low:'p-low' };
 const PRIORITY_ICON = { critical:'🔴', high:'🟡', medium:'🔵', low:'🟢' };
 const STATUS_META = {
- active: { label:'Active', cls:'s-active', icon:'▶' },
- approved: { label:'Approved', cls:'s-approved', icon:'✓' },
- pending: { label:'Pending', cls:'s-pending', icon:'⏳' },
- onhold: { label:'On Hold', cls:'s-onhold', icon:'⏸' },
- filled: { label:'Filled', cls:'s-filled', icon:'★' },
- cancelled: { label:'Cancelled', cls:'s-cancelled', icon:'✕' },
+  active: { label:'Active', cls:'s-active', icon:'▶' },
+  approved: { label:'Approved', cls:'s-approved', icon:'✓' },
+  pending: { label:'Pending', cls:'s-pending', icon:'⏳' },
+  onhold: { label:'On Hold', cls:'s-onhold', icon:'⏸' },
+  filled: { label:'Filled', cls:'s-filled', icon:'★' },
+  cancelled: { label:'Cancelled', cls:'s-cancelled', icon:'✕' },
 };
 const URG_CLASS = { confirmed:'u-confirmed', green:'u-green', amber:'u-amber', red:'u-red', nodate:'u-nodate' };
-let roles = [], nextId = 1, dragSrc = null;
-// Set default form dates
+let roles = [], dragSrc = null;
+
 document.getElementById('f-start').value = fmtDate(TODAY);
 document.getElementById('f-end').value = fmtDate(addMonths(TODAY, 6));
-/* ─── URGENCY ─── */
+
 function getUrgency(r) {
- if (r.confirmed) return 'confirmed';
- const sd = parseD(r.start);
- if (!sd) return 'nodate';
- const days = daysBetween(TODAY, sd);
- if (days <= 28) return 'red';
- if (days <= 56) return 'amber';
- return 'green';
+  if (r.confirmed) return 'confirmed';
+  const sd = parseD(r.start);
+  if (!sd) return 'nodate';
+  const days = daysBetween(TODAY, sd);
+  if (days <= 28) return 'red';
+  if (days <= 56) return 'amber';
+  return 'green';
 }
 function getURGColors() {
- return document.documentElement.dataset.theme === 'dark'
- ? { confirmed:'#259e6f', green:'#259e6f', amber:'#c4861f', red:'#c24040', nodate:'#4e6080' }
- : { confirmed:'#1a7a52', green:'#1a7a52', amber:'#a36618', red:'#a83030', nodate:'#8090b0' };
+  return document.documentElement.dataset.theme === 'dark'
+    ? { confirmed:'#259e6f', green:'#259e6f', amber:'#c4861f', red:'#c24040', nodate:'#4e6080' }
+    : { confirmed:'#1a7a52', green:'#1a7a52', amber:'#a36618', red:'#a83030', nodate:'#8090b0' };
 }
 const URG_LABEL = { confirmed:'✓ Confirmed', green:'8+ wks', amber:'4–8 wks', red:'< 4 wks', nodate:'No date' };
-/* ─── RENDER LIST ─── */
+
 function renderList() {
- const list = document.getElementById('dragList');
- const count = roles.length;
- document.getElementById('role-count').textContent = count + ' role' + (count!==1?'s':'');
- if (!count) {
- list.innerHTML = `
- <div class="empty" style="min-height:200px;">
- <div class="empty-icon">📋</div>
- <span>No roles yet — add one below</span>
- </div>`;
- updateScrollHint();
- return;
- }
- list.innerHTML = '';
- roles.forEach((r, i) => {
- const col = getColor(i);
- const urg = getUrgency(r);
- const sm = STATUS_META[r.status] || STATUS_META.active;
- const sd = parseD(r.start), ed = parseD(r.end);
- const sl = sd ? MON[sd.getMonth()]+' '+sd.getFullYear() : '—';
- const el = ed ? MON[ed.getMonth()]+' '+ed.getFullYear() : '—';
- let daysChip = '';
- if (!r.confirmed && sd) {
- const dts = daysBetween(TODAY, sd);
- if (dts < 0) daysChip = `<span class="tag" style="color:var(--red);border-color:rgba(194,64,64,0.3);">⚠ Overdue by ${Math.abs(dts)}d</span>`;
- else if (dts === 0) daysChip = `<span class="tag" style="color:${getURGColors()[urg]};border-color:${getURGColors()[urg]}33;">⏱ Starts today</span>`;
- else daysChip = `<span class="tag" style="color:${getURGColors()[urg]};border-color:${getURGColors()[urg]}33;">⏱ ${dts}d to start</span>`;
- }
- const card = document.createElement('div');
- card.className = 'role-card';
- card.draggable = true;
- card.dataset.id = r.id;
- card.innerHTML = `
- <div class="card-accent" style="background:${col}"></div>
- <div class="drag-handle" title="Drag to reorder">⠿</div>
- <div class="card-body">
- <div class="card-rank" style="color:${col}">${i+1}</div>
- <div class="card-main">
- <div class="card-name">${esc(r.name)}${r.edited ? '<span class="edited-dot" title="Recently edited"></span>' : ''}</div>
- <div class="card-pills">
- <span class="pill ${PRIORITY_CLASS[r.priority]}">${PRIORITY_ICON[r.priority]} ${r.priority}</span>
- <span class="pill ${sm.cls}">${sm.icon} ${sm.label}</span>
- <span class="pill ${URG_CLASS[urg]}">${URG_LABEL[urg]}</span>
- </div>
- <div class="card-tags">
- <span class="tag">📁 ${esc(r.dept)}</span>
- <span class="tag">📅 ${sl}</span>
- <span class="tag">→ ${el}</span>
- ${daysChip}
- </div>
- ${(r.salBest||r.salWorst) ? `<div class="card-salary">
- <span class="sal-best">▼ Best ${fmtMoney(r.salBest)}</span>
- <span class="sal-div"></span>
- <span class="sal-worst">▲ Worst ${fmtMoney(r.salWorst)}</span>
- ${(+r.salBest && +r.salWorst) ? `<span class="sal-div"></span><span style="color:var(--muted);font-size:9px;">Δ ${fmtMoney(+r.salWorst - +r.salBest)}</span>` : ''}
- </div>` : ''}
- </div>
- </div>
- <div class="card-footer">
- <label class="check-label" onclick="event.stopPropagation()">
- <input type="checkbox" ${r.confirmed?'checked':''} onchange="toggleConfirmed(${r.id},this.checked)" />
- <span class="checkmark"></span>
- <span class="check-text">${r.confirmed?'✓ Resource confirmed':'Mark as confirmed'}</span>
- </label>
- <div class="card-actions">
- <button class="edit-btn" onclick="openDrawer(${r.id},event)">✏ Edit</button>
- <button class="delete-btn" onclick="deleteRole(${r.id},event)" title="Remove role">✕</button>
- </div>
- </div>
- `;
- card.addEventListener('dragstart', e => { dragSrc=card; card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
- card.addEventListener('dragend', () => card.classList.remove('dragging'));
- card.addEventListener('dragover', e => { e.preventDefault(); document.querySelectorAll('.role-card').forEach(c=>c.classList.remove('drag-target')); card.classList.add('drag-target'); });
- card.addEventListener('dragleave', () => card.classList.remove('drag-target'));
- card.addEventListener('drop', e => {
- e.preventDefault(); card.classList.remove('drag-target');
- if (dragSrc && dragSrc!==card) {
- const si=roles.findIndex(x=>x.id===+dragSrc.dataset.id);
- const ti=roles.findIndex(x=>x.id===+card.dataset.id);
- const [m]=roles.splice(si,1); roles.splice(ti,0,m);
- renderAll();
- }
- });
- list.appendChild(card);
- });
- requestAnimationFrame(updateScrollHint);
+  const list = document.getElementById('dragList');
+  const count = roles.length;
+  document.getElementById('role-count').textContent = count + ' role' + (count!==1?'s':'');
+  if (!count) {
+    list.innerHTML = `<div class="empty" style="min-height:200px;"><div class="empty-icon">📋</div><span>No roles yet — add one below</span></div>`;
+    updateScrollHint(); return;
+  }
+  list.innerHTML = '';
+  roles.forEach((r, i) => {
+    const col = getColor(i);
+    const urg = getUrgency(r);
+    const sm = STATUS_META[r.status] || STATUS_META.active;
+    const sd = parseD(r.start), ed = parseD(r.end);
+    const sl = sd ? MON[sd.getMonth()]+' '+sd.getFullYear() : '—';
+    const el = ed ? MON[ed.getMonth()]+' '+ed.getFullYear() : '—';
+    let daysChip = '';
+    if (!r.confirmed && sd) {
+      const dts = daysBetween(TODAY, sd);
+      if (dts < 0) daysChip = `<span class="tag" style="color:var(--red);border-color:rgba(194,64,64,0.3);">⚠ Overdue by ${Math.abs(dts)}d</span>`;
+      else if (dts === 0) daysChip = `<span class="tag" style="color:${getURGColors()[urg]};border-color:${getURGColors()[urg]}33;">⏱ Starts today</span>`;
+      else daysChip = `<span class="tag" style="color:${getURGColors()[urg]};border-color:${getURGColors()[urg]}33;">⏱ ${dts}d to start</span>`;
+    }
+    const card = document.createElement('div');
+    card.className = 'role-card';
+    card.draggable = true;
+    card.dataset.id = r.id;
+    card.innerHTML = `
+      <div class="card-accent" style="background:${col}"></div>
+      <div class="drag-handle" title="Drag to reorder">⠿</div>
+      <div class="card-body">
+        <div class="card-rank" style="color:${col}">${i+1}</div>
+        <div class="card-main">
+          <div class="card-name">${esc(r.name)}${r.edited ? '<span class="edited-dot" title="Recently edited"></span>' : ''}</div>
+          <div class="card-pills">
+            <span class="pill ${PRIORITY_CLASS[r.priority]}">${PRIORITY_ICON[r.priority]} ${r.priority}</span>
+            <span class="pill ${sm.cls}">${sm.icon} ${sm.label}</span>
+            <span class="pill ${URG_CLASS[urg]}">${URG_LABEL[urg]}</span>
+          </div>
+          <div class="card-tags">
+            <span class="tag">📁 ${esc(r.dept)}</span>
+            <span class="tag">📅 ${sl}</span>
+            <span class="tag">→ ${el}</span>
+            ${daysChip}
+          </div>
+          ${(r.salBest||r.salWorst) ? `<div class="card-salary">
+            <span class="sal-best">▼ Best ${fmtMoney(r.salBest)}</span>
+            <span class="sal-div"></span>
+            <span class="sal-worst">▲ Worst ${fmtMoney(r.salWorst)}</span>
+            ${(+r.salBest && +r.salWorst) ? `<span class="sal-div"></span><span style="color:var(--muted);font-size:9px;">Δ ${fmtMoney(+r.salWorst - +r.salBest)}</span>` : ''}
+          </div>` : ''}
+        </div>
+      </div>
+      <div class="card-footer">
+        <label class="check-label" onclick="event.stopPropagation()">
+          <input type="checkbox" ${r.confirmed?'checked':''} onchange="toggleConfirmed(${r.id},this.checked)" />
+          <span class="checkmark"></span>
+          <span class="check-text">${r.confirmed?'✓ Resource confirmed':'Mark as confirmed'}</span>
+        </label>
+        <div class="card-actions">
+          <button class="edit-btn" onclick="openDrawer(${r.id},event)">✏ Edit</button>
+          <button class="delete-btn" onclick="deleteRole(${r.id},event)" title="Remove role">✕</button>
+        </div>
+      </div>`;
+    card.addEventListener('dragstart', e => { dragSrc=card; card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    card.addEventListener('dragend', () => card.classList.remove('dragging'));
+    card.addEventListener('dragover', e => { e.preventDefault(); document.querySelectorAll('.role-card').forEach(c=>c.classList.remove('drag-target')); card.classList.add('drag-target'); });
+    card.addEventListener('dragleave', () => card.classList.remove('drag-target'));
+    card.addEventListener('drop', async e => {
+      e.preventDefault(); card.classList.remove('drag-target');
+      if (dragSrc && dragSrc!==card) {
+        const si=roles.findIndex(x=>x.id===+dragSrc.dataset.id);
+        const ti=roles.findIndex(x=>x.id===+card.dataset.id);
+        const [m]=roles.splice(si,1); roles.splice(ti,0,m);
+        renderAll();
+        await dbUpdateSortOrders();
+      }
+    });
+    list.appendChild(card);
+  });
+  requestAnimationFrame(updateScrollHint);
 }
-/* ─── RENDER SUMMARY ─── */
+
 function renderSummary() {
- let best=0, worst=0, active=0, onhold=0, filled=0;
- roles.forEach(r => {
- if(r.salBest) best += +r.salBest;
- if(r.salWorst) worst += +r.salWorst;
- if(r.status==='active'||r.status==='approved') active++;
- if(r.status==='onhold') onhold++;
- if(r.status==='filled') filled++;
- });
- const cards = [
- { lbl:'Total Roles', val:roles.length, sub:'in pipeline', acc:'var(--accent)' },
- { lbl:'Active / Ready', val:active, sub:'hiring in progress',acc:'var(--green)' },
- { lbl:'On Hold', val:onhold, sub:'paused roles', acc:'var(--amber)' },
- { lbl:'Best-Case Budget',val:fmtMoney(best), sub:'combined annual', acc:'var(--green)' },
- { lbl:'Worst-Case Budget',val:fmtMoney(worst),sub:'combined annual',acc:'var(--red)' },
- ];
- document.getElementById('summary-row').innerHTML = cards.map(c=>`
- <div class="sum-card" style="--card-accent:${c.acc}">
- <div class="sum-lbl">${c.lbl}</div>
- <div class="sum-val">${c.val}</div>
- <div class="sum-sub">${c.sub}</div>
- </div>
- `).join('');
- document.getElementById('hdr-stats').innerHTML = `
- <div class="hdr-stat"><div class="hdr-stat-val" style="color:var(--green)">${fmtMoney(best)}</div><div class="hdr-stat-lbl">Best Case</div></div>
- <div class="hdr-stat"><div class="hdr-stat-val" style="color:var(--red)">${fmtMoney(worst)}</div><div class="hdr-stat-lbl">Worst Case</div></div>
- `;
+  let best=0, worst=0, active=0, onhold=0, filled=0;
+  roles.forEach(r => {
+    if(r.salBest) best += +r.salBest;
+    if(r.salWorst) worst += +r.salWorst;
+    if(r.status==='active'||r.status==='approved') active++;
+    if(r.status==='onhold') onhold++;
+    if(r.status==='filled') filled++;
+  });
+  const cards = [
+    { lbl:'Total Roles', val:roles.length, sub:'in pipeline', acc:'var(--accent)' },
+    { lbl:'Active / Ready', val:active, sub:'hiring in progress', acc:'var(--green)' },
+    { lbl:'On Hold', val:onhold, sub:'paused roles', acc:'var(--amber)' },
+    { lbl:'Best-Case Budget', val:fmtMoney(best), sub:'combined annual', acc:'var(--green)' },
+    { lbl:'Worst-Case Budget', val:fmtMoney(worst), sub:'combined annual', acc:'var(--red)' },
+  ];
+  document.getElementById('summary-row').innerHTML = cards.map(c=>`
+    <div class="sum-card" style="--card-accent:${c.acc}">
+      <div class="sum-lbl">${c.lbl}</div>
+      <div class="sum-val">${c.val}</div>
+      <div class="sum-sub">${c.sub}</div>
+    </div>`).join('');
+  document.getElementById('hdr-stats').innerHTML = `
+    <div class="hdr-stat"><div class="hdr-stat-val" style="color:var(--green)">${fmtMoney(best)}</div><div class="hdr-stat-lbl">Best Case</div></div>
+    <div class="hdr-stat"><div class="hdr-stat-val" style="color:var(--red)">${fmtMoney(worst)}</div><div class="hdr-stat-lbl">Worst Case</div></div>`;
 }
-/* ─── RENDER GANTT ─── */
+
 function renderGantt() {
- const inner = document.getElementById('gantt-inner');
- if (!roles.length) {
- inner.innerHTML = '<div class="empty"><div class="empty-icon">📊</div><span>Add roles to see the Gantt</span></div>';
- document.getElementById('gantt-range').textContent = '—';
- return;
- }
- const MONTH_W = 72, NAME_W = 200, STATUS_W = 110;
- const ganttStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
- const allEnds = roles.map(r=>parseD(r.end)).filter(Boolean);
- let ganttEnd = allEnds.length ? new Date(Math.max(...allEnds)) : addMonths(TODAY,6);
- ganttEnd = new Date(ganttEnd.getFullYear(), ganttEnd.getMonth()+2, 1);
- const months = [];
- let cur = new Date(ganttStart);
- while (cur <= ganttEnd) { months.push(new Date(cur)); cur.setMonth(cur.getMonth()+1); }
- while (months.length < 8) { const l=new Date(months[months.length-1]); l.setMonth(l.getMonth()+1); months.push(l); }
- const timelineW = months.length * MONTH_W;
- const totalDays = daysBetween(ganttStart, months[months.length-1]) + 31;
- const xFor = d => Math.round((daysBetween(ganttStart,d)/totalDays)*timelineW);
- const todayX = xFor(TODAY);
- const lastEnd = allEnds.length ? new Date(Math.max(...allEnds)) : addMonths(TODAY,6);
- document.getElementById('gantt-range').textContent = fmtDL(TODAY) + ' → ' + fmtDL(lastEnd);
- let html = `<div style="min-width:${NAME_W+STATUS_W+timelineW}px;">`;
- html += `<div class="g-header-row">
- <div class="gantt-name-col"><div class="g-name-hdr">Role</div></div>
- <div class="g-status-col" style="display:flex;align-items:center;padding:0 10px;height:44px;">
- <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;">Status</span>
- </div>
- <div style="flex:1;">
- <div class="month-hdr-wrap">`;
- months.forEach((m,i) => {
- const isYr = m.getMonth()===0 && i>0;
- html += `<div class="month-hdr-cell ${isYr?'new-yr':''}" style="width:${MONTH_W}px;min-width:${MONTH_W}px;">
- <span>${MON[m.getMonth()]}</span>
- <span style="font-size:7px;opacity:0.45;margin-top:1px">${m.getFullYear()}</span>
- </div>`;
- });
- html += `</div></div></div>`;
- roles.forEach((r, i) => {
- const col = getColor(i);
- const sd = parseD(r.start), ed = parseD(r.end);
- const hasDates = !!(sd && ed);
- const urg = getUrgency(r);
- const barColor = getURGColors()[urg];
- const sm = STATUS_META[r.status] || STATUS_META.active;
- let finalColor = barColor;
- let extraBarClass = '';
- const dark = document.documentElement.dataset.theme === 'dark';
- if (r.status === 'onhold') { finalColor = dark ? '#c4861f' : '#a36618'; extraBarClass = 'g-bar-onhold'; }
- if (r.status === 'cancelled') { finalColor = dark ? '#4e6080' : '#8090b0'; extraBarClass = 'g-bar-cancelled'; }
- if (r.status === 'filled') { finalColor = dark ? '#2a8ab8' : '#1a6d94'; extraBarClass = ''; }
- let barL=0, barW=0;
- if (hasDates) {
- barL = Math.max(0, xFor(sd));
- barW = Math.max(6, xFor(ed) - barL);
- }
- const sb=+r.salBest||0, sw=+r.salWorst||0, mx=Math.max(sb,sw,1);
- const bestW = hasDates ? Math.round((sb/mx)*barW) : 0;
- const worstW = hasDates ? Math.round((sw/mx)*barW) : 0;
- html += `<div class="g-row">
- <div class="g-name-cell" style="border-left:3px solid ${col}">
- <span class="g-rank" style="color:${col}">#${i+1}</span>
- <span class="g-role-name" title="${esc(r.name)}">${esc(r.name)}</span>
- </div>
- <div class="g-status-cell">
- <span class="pill ${sm.cls}" style="font-size:8px;">${sm.icon} ${sm.label}</span>
- </div>
- <div style="flex:1;">
- <div class="g-bar-area" style="width:${timelineW}px;">`;
- months.forEach((_,mi) => { html += `<div class="g-vline" style="left:${mi*MONTH_W}px"></div>`; });
- html += `<div class="g-today" style="left:${todayX}px"><span class="g-today-lbl">TODAY</span></div>`;
- if (hasDates) {
- const urgTxt = { confirmed:'✓ Confirmed', green:'', amber:'', red:'!', nodate:'' }[urg];
- html += `<div class="g-bar ${extraBarClass}"
- style="left:${barL}px;width:${barW}px;background:${finalColor}20;border:1px solid ${finalColor}55;"
- onmouseenter="showTip(event,${i})" onmouseleave="hideTip()">
- <span style="color:${finalColor};font-weight:600;">${urgTxt}</span>
- </div>`;
- if (bestW>0) html += `<div class="g-sal-best" style="left:${barL}px;width:${bestW}px"></div>`;
- if (worstW>0) html += `<div class="g-sal-worst" style="left:${barL}px;width:${worstW}px"></div>`;
- } else {
- html += `<div class="g-no-dates" style="left:${todayX+8}px">No dates set</div>`;
- }
- html += `</div></div></div>`;
- });
- html += '</div>';
- inner.innerHTML = html;
+  const inner = document.getElementById('gantt-inner');
+  if (!roles.length) {
+    inner.innerHTML = '<div class="empty"><div class="empty-icon">📊</div><span>Add roles to see the Gantt</span></div>';
+    document.getElementById('gantt-range').textContent = '—'; return;
+  }
+  const MONTH_W=72, NAME_W=200, STATUS_W=110;
+  const ganttStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+  const allEnds = roles.map(r=>parseD(r.end)).filter(Boolean);
+  let ganttEnd = allEnds.length ? new Date(Math.max(...allEnds)) : addMonths(TODAY,6);
+  ganttEnd = new Date(ganttEnd.getFullYear(), ganttEnd.getMonth()+2, 1);
+  const months = [];
+  let cur = new Date(ganttStart);
+  while (cur <= ganttEnd) { months.push(new Date(cur)); cur.setMonth(cur.getMonth()+1); }
+  while (months.length < 8) { const l=new Date(months[months.length-1]); l.setMonth(l.getMonth()+1); months.push(l); }
+  const timelineW = months.length * MONTH_W;
+  const totalDays = daysBetween(ganttStart, months[months.length-1]) + 31;
+  const xFor = d => Math.round((daysBetween(ganttStart,d)/totalDays)*timelineW);
+  const todayX = xFor(TODAY);
+  const lastEnd = allEnds.length ? new Date(Math.max(...allEnds)) : addMonths(TODAY,6);
+  document.getElementById('gantt-range').textContent = fmtDL(TODAY) + ' → ' + fmtDL(lastEnd);
+  let html = `<div style="min-width:${NAME_W+STATUS_W+timelineW}px;">`;
+  html += `<div class="g-header-row">
+    <div class="gantt-name-col"><div class="g-name-hdr">Role</div></div>
+    <div class="g-status-col" style="display:flex;align-items:center;padding:0 10px;height:44px;">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;">Status</span>
+    </div>
+    <div style="flex:1;"><div class="month-hdr-wrap">`;
+  months.forEach((m,i) => {
+    const isYr = m.getMonth()===0 && i>0;
+    html += `<div class="month-hdr-cell ${isYr?'new-yr':''}" style="width:${MONTH_W}px;min-width:${MONTH_W}px;">
+      <span>${MON[m.getMonth()]}</span>
+      <span style="font-size:7px;opacity:0.45;margin-top:1px">${m.getFullYear()}</span>
+    </div>`;
+  });
+  html += `</div></div></div>`;
+  roles.forEach((r, i) => {
+    const col = getColor(i);
+    const sd = parseD(r.start), ed = parseD(r.end);
+    const hasDates = !!(sd && ed);
+    const urg = getUrgency(r);
+    const barColor = getURGColors()[urg];
+    const sm = STATUS_META[r.status] || STATUS_META.active;
+    let finalColor = barColor, extraBarClass = '';
+    const dark = document.documentElement.dataset.theme === 'dark';
+    if (r.status==='onhold') { finalColor = dark?'#c4861f':'#a36618'; extraBarClass='g-bar-onhold'; }
+    if (r.status==='cancelled') { finalColor = dark?'#4e6080':'#8090b0'; extraBarClass='g-bar-cancelled'; }
+    if (r.status==='filled') { finalColor = dark?'#2a8ab8':'#1a6d94'; extraBarClass=''; }
+    let barL=0, barW=0;
+    if (hasDates) { barL=Math.max(0,xFor(sd)); barW=Math.max(6,xFor(ed)-barL); }
+    const sb2=+r.salBest||0, sw=+r.salWorst||0, mx=Math.max(sb2,sw,1);
+    const bestW = hasDates ? Math.round((sb2/mx)*barW) : 0;
+    const worstW = hasDates ? Math.round((sw/mx)*barW) : 0;
+    html += `<div class="g-row">
+      <div class="g-name-cell" style="border-left:3px solid ${col}">
+        <span class="g-rank" style="color:${col}">#${i+1}</span>
+        <span class="g-role-name" title="${esc(r.name)}">${esc(r.name)}</span>
+      </div>
+      <div class="g-status-cell"><span class="pill ${sm.cls}" style="font-size:8px;">${sm.icon} ${sm.label}</span></div>
+      <div style="flex:1;"><div class="g-bar-area" style="width:${timelineW}px;">`;
+    months.forEach((_,mi) => { html += `<div class="g-vline" style="left:${mi*MONTH_W}px"></div>`; });
+    html += `<div class="g-today" style="left:${todayX}px"><span class="g-today-lbl">TODAY</span></div>`;
+    if (hasDates) {
+      const urgTxt = { confirmed:'✓ Confirmed', green:'', amber:'', red:'!', nodate:'' }[urg];
+      html += `<div class="g-bar ${extraBarClass}" style="left:${barL}px;width:${barW}px;background:${finalColor}20;border:1px solid ${finalColor}55;" onmouseenter="showTip(event,${i})" onmouseleave="hideTip()"><span style="color:${finalColor};font-weight:600;">${urgTxt}</span></div>`;
+      if (bestW>0) html += `<div class="g-sal-best" style="left:${barL}px;width:${bestW}px"></div>`;
+      if (worstW>0) html += `<div class="g-sal-worst" style="left:${barL}px;width:${worstW}px"></div>`;
+    } else {
+      html += `<div class="g-no-dates" style="left:${todayX+8}px">No dates set</div>`;
+    }
+    html += `</div></div></div>`;
+  });
+  html += '</div>';
+  inner.innerHTML = html;
 }
-/* ─── TOOLTIP ─── */
+
 function showTip(e, i) {
- const r = roles[i]; if(!r) return;
- const sd=parseD(r.start), ed=parseD(r.end);
- let dur='—';
- if (sd&&ed) { const m=Math.round(daysBetween(sd,ed)/30.4); dur=m+' month'+(m!==1?'s':''); }
- const urg = getUrgency(r);
- const sm = STATUS_META[r.status]||STATUS_META.active;
- const urgFull = { confirmed:'✓ Resource confirmed', green:'🟢 8+ weeks to start', amber:'🟡 4–8 weeks to start', red:'🔴 Under 4 weeks', nodate:'⚪ No start date' }[urg];
- document.getElementById('tip').innerHTML = `
- <div class="tt-name">${esc(r.name)}</div>
- <div class="tt-row"><span>📁 ${esc(r.dept)}</span><span>${PRIORITY_ICON[r.priority]} ${r.priority}</span></div>
- <div class="tt-row"><span>${sm.icon} ${sm.label}</span><span>${urgFull}</span></div>
- <div class="tt-row"><span>📅 ${r.start||'—'}</span><span>→ ${r.end||'—'}</span></div>
- <div>⏱ ${dur}</div>
- <div class="tt-row" style="margin-top:4px;padding-top:4px;border-top:1px solid var(--border2)">
- <span class="tt-g">▼ Best: ${fmtMoney(r.salBest)}</span>
- <span class="tt-r">▲ Worst: ${fmtMoney(r.salWorst)}</span>
- </div>
- `;
- document.getElementById('tip').style.display = 'block';
+  const r = roles[i]; if(!r) return;
+  const sd=parseD(r.start), ed=parseD(r.end);
+  let dur='—';
+  if (sd&&ed) { const m=Math.round(daysBetween(sd,ed)/30.4); dur=m+' month'+(m!==1?'s':''); }
+  const urg = getUrgency(r);
+  const sm = STATUS_META[r.status]||STATUS_META.active;
+  const urgFull = { confirmed:'✓ Resource confirmed', green:'🟢 8+ weeks to start', amber:'🟡 4–8 weeks to start', red:'🔴 Under 4 weeks', nodate:'⚪ No start date' }[urg];
+  document.getElementById('tip').innerHTML = `
+    <div class="tt-name">${esc(r.name)}</div>
+    <div class="tt-row"><span>📁 ${esc(r.dept)}</span><span>${PRIORITY_ICON[r.priority]} ${r.priority}</span></div>
+    <div class="tt-row"><span>${sm.icon} ${sm.label}</span><span>${urgFull}</span></div>
+    <div class="tt-row"><span>📅 ${r.start||'—'}</span><span>→ ${r.end||'—'}</span></div>
+    <div>⏱ ${dur}</div>
+    <div class="tt-row" style="margin-top:4px;padding-top:4px;border-top:1px solid var(--border2)">
+      <span class="tt-g">▼ Best: ${fmtMoney(r.salBest)}</span>
+      <span class="tt-r">▲ Worst: ${fmtMoney(r.salWorst)}</span>
+    </div>`;
+  document.getElementById('tip').style.display = 'block';
 }
 document.addEventListener('mousemove', e => {
- const t=document.getElementById('tip');
- if(t.style.display==='block'){t.style.left=(e.clientX+16)+'px';t.style.top=(e.clientY-10)+'px';}
+  const t=document.getElementById('tip');
+  if(t.style.display==='block'){t.style.left=(e.clientX+16)+'px';t.style.top=(e.clientY-10)+'px';}
 });
 function hideTip(){ document.getElementById('tip').style.display='none'; }
-/* ─── ADD / DELETE ─── */
-function addRole() {
- const name = document.getElementById('f-name').value.trim();
- if (!name) { document.getElementById('f-name').focus(); return; }
- const start=document.getElementById('f-start').value, end=document.getElementById('f-end').value;
- if (start&&end&&parseD(start)>=parseD(end)) { alert('Completion date must be after start date.'); return; }
- roles.push({
- id:nextId++, name,
- dept: document.getElementById('f-dept').value,
- priority:document.getElementById('f-priority').value,
- status: document.getElementById('f-status').value,
- start, end,
- confirmed: document.getElementById('f-confirmed').checked,
- salBest: document.getElementById('f-sal-best').value,
- salWorst: document.getElementById('f-sal-worst').value,
- });
- document.getElementById('f-name').value='';
- document.getElementById('f-sal-best').value='';
- document.getElementById('f-sal-worst').value='';
- document.getElementById('f-confirmed').checked=false;
- document.getElementById('f-start').value=fmtDate(TODAY);
- document.getElementById('f-end').value=fmtDate(addMonths(TODAY,6));
- renderAll();
+
+async function addRole() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { document.getElementById('f-name').focus(); return; }
+  const start=document.getElementById('f-start').value, end=document.getElementById('f-end').value;
+  if (start&&end&&parseD(start)>=parseD(end)) { alert('Completion date must be after start date.'); return; }
+  const newRole = {
+    name, dept: document.getElementById('f-dept').value,
+    priority: document.getElementById('f-priority').value,
+    status: document.getElementById('f-status').value,
+    start, end,
+    confirmed: document.getElementById('f-confirmed').checked,
+    salBest: document.getElementById('f-sal-best').value,
+    salWorst: document.getElementById('f-sal-worst').value,
+  };
+  setStatus('saving');
+  const newId = await dbInsert(newRole, roles.length);
+  if (newId) {
+    newRole.id = newId;
+    roles.push(newRole);
+    document.getElementById('f-name').value='';
+    document.getElementById('f-sal-best').value='';
+    document.getElementById('f-sal-worst').value='';
+    document.getElementById('f-confirmed').checked=false;
+    document.getElementById('f-start').value=fmtDate(TODAY);
+    document.getElementById('f-end').value=fmtDate(addMonths(TODAY,6));
+    setStatus('saved');
+    renderAll();
+  }
 }
-function deleteRole(id, e) { e.stopPropagation(); roles=roles.filter(r=>r.id!==id); renderAll(); }
-function toggleConfirmed(id, val) {
- const r = roles.find(x => x.id === id);
- if (!r) return;
- r.confirmed = val;
- renderSummary();
- renderGantt();
- scheduleSave();
- const card = document.querySelector(`.role-card[data-id="${id}"]`);
- if (card) {
- const urg = getUrgency(r);
- const urgPill = card.querySelectorAll('.pill')[2];
- if (urgPill) { urgPill.className = `pill ${URG_CLASS[urg]}`; urgPill.textContent = URG_LABEL[urg]; }
- const txt = card.querySelector('.check-text');
- if (txt) txt.textContent = val ? '✓ Resource confirmed' : 'Mark as confirmed';
- txt && (txt.style.color = val ? 'var(--green)' : '');
- }
+
+async function deleteRole(id, e) {
+  e.stopPropagation();
+  roles = roles.filter(r => r.id !== id);
+  renderAll();
+  await dbDelete(id);
+  await dbUpdateSortOrders();
 }
-/* ─── EDIT DRAWER ─── */
+
+async function toggleConfirmed(id, val) {
+  const r = roles.find(x => x.id === id);
+  if (!r) return;
+  r.confirmed = val;
+  renderSummary(); renderGantt();
+  await dbUpdate(r, roles.indexOf(r));
+  const card = document.querySelector(`.role-card[data-id="${id}"]`);
+  if (card) {
+    const urg = getUrgency(r);
+    const urgPill = card.querySelectorAll('.pill')[2];
+    if (urgPill) { urgPill.className=`pill ${URG_CLASS[urg]}`; urgPill.textContent=URG_LABEL[urg]; }
+    const txt = card.querySelector('.check-text');
+    if (txt) txt.textContent = val ? '✓ Resource confirmed' : 'Mark as confirmed';
+  }
+}
+
 let editingId = null;
 function openDrawer(id, e) {
- if (e) e.stopPropagation();
- const r = roles.find(x => x.id === id);
- if (!r) return;
- editingId = id;
- document.getElementById('drawer-title').textContent = r.name;
- document.getElementById('e-name').value = r.name;
- document.getElementById('e-dept').value = r.dept;
- document.getElementById('e-priority').value = r.priority;
- document.getElementById('e-status').value = r.status || 'active';
- document.getElementById('e-start').value = r.start || '';
- document.getElementById('e-end').value = r.end || '';
- document.getElementById('e-confirmed').checked= !!r.confirmed;
- document.getElementById('e-sal-best').value = r.salBest || '';
- document.getElementById('e-sal-worst').value = r.salWorst || '';
- document.getElementById('editDrawer').classList.add('open');
- document.getElementById('drawerOverlay').classList.add('open');
- document.body.style.overflow = 'hidden';
- setTimeout(() => document.getElementById('e-name').focus(), 280);
+  if (e) e.stopPropagation();
+  const r = roles.find(x => x.id === id);
+  if (!r) return;
+  editingId = id;
+  document.getElementById('drawer-title').textContent = r.name;
+  document.getElementById('e-name').value = r.name;
+  document.getElementById('e-dept').value = r.dept;
+  document.getElementById('e-priority').value = r.priority;
+  document.getElementById('e-status').value = r.status || 'active';
+  document.getElementById('e-start').value = r.start || '';
+  document.getElementById('e-end').value = r.end || '';
+  document.getElementById('e-confirmed').checked = !!r.confirmed;
+  document.getElementById('e-sal-best').value = r.salBest || '';
+  document.getElementById('e-sal-worst').value = r.salWorst || '';
+  document.getElementById('editDrawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('e-name').focus(), 280);
 }
 function closeDrawer() {
- document.getElementById('editDrawer').classList.remove('open');
- document.getElementById('drawerOverlay').classList.remove('open');
- document.body.style.overflow = '';
- editingId = null;
+  document.getElementById('editDrawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+  editingId = null;
 }
-function saveEdit() {
- const r = roles.find(x => x.id === editingId);
- if (!r) return;
- const name = document.getElementById('e-name').value.trim();
- if (!name) { document.getElementById('e-name').focus(); return; }
- const start = document.getElementById('e-start').value;
- const end = document.getElementById('e-end').value;
- if (start && end && parseD(start) >= parseD(end)) {
- alert('Completion date must be after start date.'); return;
- }
- r.name = name;
- r.dept = document.getElementById('e-dept').value;
- r.priority = document.getElementById('e-priority').value;
- r.status = document.getElementById('e-status').value;
- r.start = start;
- r.end = end;
- r.confirmed = document.getElementById('e-confirmed').checked;
- r.salBest = document.getElementById('e-sal-best').value;
- r.salWorst = document.getElementById('e-sal-worst').value;
- r.edited = true;
- closeDrawer();
- renderAll();
+async function saveEdit() {
+  const r = roles.find(x => x.id === editingId);
+  if (!r) return;
+  const name = document.getElementById('e-name').value.trim();
+  if (!name) { document.getElementById('e-name').focus(); return; }
+  const start = document.getElementById('e-start').value;
+  const end = document.getElementById('e-end').value;
+  if (start && end && parseD(start) >= parseD(end)) { alert('Completion date must be after start date.'); return; }
+  r.name = name;
+  r.dept = document.getElementById('e-dept').value;
+  r.priority = document.getElementById('e-priority').value;
+  r.status = document.getElementById('e-status').value;
+  r.start = start; r.end = end;
+  r.confirmed = document.getElementById('e-confirmed').checked;
+  r.salBest = document.getElementById('e-sal-best').value;
+  r.salWorst = document.getElementById('e-sal-worst').value;
+  r.edited = true;
+  closeDrawer();
+  renderAll();
+  setStatus('saving');
+  await dbUpdate(r, roles.indexOf(r));
+  setStatus('saved');
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && editingId) closeDrawer(); });
-/* ─── FILTER ─── */
+
 function filterList() {
- const q = (document.getElementById('list-search').value||'').toLowerCase();
- const status = document.getElementById('list-filter-status').value;
- document.querySelectorAll('.role-card').forEach(card => {
- const id = +card.dataset.id;
- const r = roles.find(x=>x.id===id);
- if (!r) return;
- const matchQ = !q || r.name.toLowerCase().includes(q) || r.dept.toLowerCase().includes(q);
- const matchS = !status || r.status === status;
- card.style.display = (matchQ && matchS) ? '' : 'none';
- });
- updateScrollHint();
+  const q = (document.getElementById('list-search').value||'').toLowerCase();
+  const status = document.getElementById('list-filter-status').value;
+  document.querySelectorAll('.role-card').forEach(card => {
+    const r = roles.find(x=>x.id===+card.dataset.id);
+    if (!r) return;
+    const matchQ = !q || r.name.toLowerCase().includes(q) || r.dept.toLowerCase().includes(q);
+    const matchS = !status || r.status === status;
+    card.style.display = (matchQ && matchS) ? '' : 'none';
+  });
+  updateScrollHint();
 }
-/* ─── SCROLL HINT ─── */
+
 function updateScrollHint() {
- const list = document.getElementById('dragList');
- const fade = document.getElementById('listFade');
- const hint = document.getElementById('scrollHint');
- if (!list||!fade||!hint) return;
- const atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 8;
- const hasScroll = list.scrollHeight > list.clientHeight + 8;
- const show = hasScroll && !atBottom;
- fade.classList.toggle('hidden', !show);
- hint.classList.toggle('hidden', !show);
- if (show) {
- const visibleBottom = list.scrollTop + list.clientHeight;
- const remaining = [...list.querySelectorAll('.role-card')]
- .filter(c => c.style.display !== 'none' && c.offsetTop > visibleBottom).length;
- hint.textContent = remaining > 0 ? `↓ ${remaining} more role${remaining!==1?'s':''}` : '↓ scroll for more';
- }
+  const list = document.getElementById('dragList');
+  const fade = document.getElementById('listFade');
+  const hint = document.getElementById('scrollHint');
+  if (!list||!fade||!hint) return;
+  const atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 8;
+  const hasScroll = list.scrollHeight > list.clientHeight + 8;
+  const show = hasScroll && !atBottom;
+  fade.classList.toggle('hidden', !show);
+  hint.classList.toggle('hidden', !show);
+  if (show) {
+    const visibleBottom = list.scrollTop + list.clientHeight;
+    const remaining = [...list.querySelectorAll('.role-card')]
+      .filter(c => c.style.display !== 'none' && c.offsetTop > visibleBottom).length;
+    hint.textContent = remaining > 0 ? `↓ ${remaining} more role${remaining!==1?'s':''}` : '↓ scroll for more';
+  }
 }
 document.getElementById('dragList').addEventListener('scroll', updateScrollHint);
-/* ══════════════════════════════════════════════════════
- SHAREPOINT CONFIG — fill these in before publishing
- ══════════════════════════════════════════════════════ */
-const SP_CONFIG = {
- clientId: 'YOUR_CLIENT_ID',
- tenantId: 'YOUR_TENANT_ID',
- siteUrl: 'https://YOUR_ORG.sharepoint.com/sites/YOUR_SITE',
- libraryName: 'Documents',
- fileName: 'recruitment-planner.json'
-};
-/* ══════════════════════════════════════════════════════ */
-const CONFIGURED = SP_CONFIG.clientId !== 'YOUR_CLIENT_ID';
-/* ─── MSAL AUTH ─── */
-let msalApp = null, spToken = null;
-async function initMSAL() {
- if (!CONFIGURED) return;
- if (msalApp) return;
- await loadScript('https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js');
- msalApp = new msal.PublicClientApplication({
- auth: {
- clientId: SP_CONFIG.clientId,
- authority: `https://login.microsoftonline.com/${SP_CONFIG.tenantId}`,
- redirectUri: window.location.href.split('?')[0]
- },
- cache: { cacheLocation: 'sessionStorage' }
- });
- await msalApp.initialize();
-}
-function loadScript(src) {
- return new Promise((res, rej) => {
- if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
- const s = document.createElement('script');
- s.src = src; s.onload = res; s.onerror = rej;
- document.head.appendChild(s);
- });
-}
-async function getToken() {
- if (!msalApp) await initMSAL();
- const scope = `${SP_CONFIG.siteUrl.match(/https:\/\/[^/]+/)[0]}/.default`;
- const accounts = msalApp.getAllAccounts();
- try {
- const res = await msalApp.acquireTokenSilent({ scopes: [scope], account: accounts[0] });
- return res.accessToken;
- } catch {
- const res = await msalApp.acquireTokenPopup({ scopes: [scope] });
- return res.accessToken;
- }
-}
-/* ─── SHAREPOINT FILE API ─── */
-async function spFileUrl() {
- const host = SP_CONFIG.siteUrl.match(/https:\/\/[^/]+/)[0];
- const path = SP_CONFIG.siteUrl.replace(host, '');
- const token = await getToken();
- const siteRes = await fetch(`https://graph.microsoft.com/v1.0/sites/${host.replace('https://','').replace('/', ':')}:${path}`, {
- headers: { Authorization: `Bearer ${token}` }
- });
- const site = await siteRes.json();
- return { token, siteId: site.id };
-}
-async function saveToSharePoint() {
- if (!CONFIGURED) { saveLocal(); return; }
- setStatus('saving');
- try {
- const { token, siteId } = await spFileUrl();
- const payload = JSON.stringify({ roles, nextId, savedAt: new Date().toISOString() }, null, 2);
- const url = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives?$select=id,name`;
- const drivesRes = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
- const drives = await drivesRes.json();
- const drive = drives.value.find(d => d.name === SP_CONFIG.libraryName) || drives.value[0];
- const uploadRes = await fetch(
- `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${drive.id}/root:/${SP_CONFIG.fileName}:/content`,
- { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: payload }
- );
- if (!uploadRes.ok) throw new Error(await uploadRes.text());
- saveLocal();
- setStatus('saved');
- } catch (e) {
- console.error('SharePoint save failed:', e);
- setStatus('error');
- }
-}
-async function loadFromSharePoint() {
- if (!CONFIGURED) return loadLocal();
- setStatus('loading');
- try {
- await initMSAL();
- const { token, siteId } = await spFileUrl();
- const drivesRes = await fetch(
- `https://graph.microsoft.com/v1.0/sites/${siteId}/drives?$select=id,name`,
- { headers: { Authorization: `Bearer ${token}` } }
- );
- const drives = await drivesRes.json();
- const drive = drives.value.find(d => d.name === SP_CONFIG.libraryName) || drives.value[0];
- const fileRes = await fetch(
- `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${drive.id}/root:/${SP_CONFIG.fileName}:/content`,
- { headers: { Authorization: `Bearer ${token}` } }
- );
- if (fileRes.status === 404) { setStatus('idle'); return false; }
- if (!fileRes.ok) throw new Error(await fileRes.text());
- const data = await fileRes.json();
- if (data.roles && data.roles.length) {
- roles = data.roles;
- nextId = data.nextId || (Math.max(...roles.map(r => r.id)) + 1);
- saveLocal();
- setStatus('idle');
- return true;
- }
- } catch (e) {
- console.error('SharePoint load failed:', e);
- setStatus('error');
- return loadLocal();
- }
- setStatus('idle');
- return false;
-}
-/* ─── LOCAL CACHE (fast fallback) ─── */
-const STORAGE_KEY = 'recruitment-planner-v1';
-function saveLocal() {
- try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ roles, nextId })); } catch {}
-}
-function loadLocal() {
- try {
- const raw = localStorage.getItem(STORAGE_KEY);
- if (!raw) return false;
- const data = JSON.parse(raw);
- if (data.roles && data.roles.length) {
- roles = data.roles;
- nextId = data.nextId || (Math.max(...roles.map(r => r.id)) + 1);
- return true;
- }
- } catch {}
- return false;
-}
-/* ─── STATUS INDICATOR ─── */
+
 const STATUS_CFG = {
- idle: { text: CONFIGURED ? '● Connected to SharePoint' : '⚠ Not configured', cls: CONFIGURED ? 'si-ok' : 'si-warn' },
- loading: { text: '⟳ Loading from SharePoint…', cls: 'si-busy' },
- saving: { text: '⟳ Saving to SharePoint…', cls: 'si-busy' },
- saved: { text: '✓ Saved to SharePoint', cls: 'si-ok' },
- error: { text: '✕ Save failed — check console', cls: 'si-err' },
+  idle:    { text:'● Live — Supabase connected', cls:'si-ok' },
+  loading: { text:'⟳ Loading…', cls:'si-busy' },
+  saving:  { text:'⟳ Saving…', cls:'si-busy' },
+  saved:   { text:'✓ Saved', cls:'si-ok' },
+  error:   { text:'✕ Save failed — check console', cls:'si-err' },
 };
 function setStatus(key) {
- const el = document.getElementById('saveIndicator');
- const cfg = STATUS_CFG[key] || STATUS_CFG.idle;
- el.textContent = cfg.text;
- el.className = 'save-indicator show ' + cfg.cls;
- if (key === 'saved') setTimeout(() => setStatus('idle'), 3000);
+  const el = document.getElementById('saveIndicator');
+  const cfg = STATUS_CFG[key] || STATUS_CFG.idle;
+  el.textContent = cfg.text;
+  el.className = 'save-indicator ' + cfg.cls;
+  if (key === 'saved') setTimeout(() => setStatus('idle'), 3000);
 }
-/* ─── DEBOUNCED AUTO-SAVE ─── */
-let _saveTimer = null;
-function scheduleSave() {
- saveLocal();
- clearTimeout(_saveTimer);
- _saveTimer = setTimeout(() => saveToSharePoint(), 1500);
-}
-/* ─── CSV EXPORT ─── */
+
 function exportCSV() {
- const headers = ['Rank','Role','Department','Priority','Status','Start Date','End Date','Confirmed','Best Case (£)','Worst Case (£)','Urgency'];
- const rows = roles.map((r, i) => {
- const urg = URG_LABEL[getUrgency(r)];
- return [
- i+1, `"${r.name.replace(/"/g,'""')}"`, r.dept, r.priority, r.status,
- r.start||'', r.end||'',
- r.confirmed ? 'Yes' : 'No',
- r.salBest||'', r.salWorst||'',
- urg
- ].join(',');
- });
- const csv = [headers.join(','), ...rows].join('\n');
- const blob = new Blob([csv], { type:'text/csv' });
- const url = URL.createObjectURL(blob);
- const a = document.createElement('a');
- a.href = url; a.download = 'recruitment-planner.csv';
- a.click(); URL.revokeObjectURL(url);
+  const headers = ['Rank','Role','Department','Priority','Status','Start Date','End Date','Confirmed','Best Case (£)','Worst Case (£)','Urgency'];
+  const rows = roles.map((r, i) => {
+    const urg = URG_LABEL[getUrgency(r)];
+    return [i+1, `"${r.name.replace(/"/g,'""')}"`, r.dept, r.priority, r.status, r.start||'', r.end||'', r.confirmed?'Yes':'No', r.salBest||'', r.salWorst||'', urg].join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type:'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='recruitment-planner.csv';
+  a.click(); URL.revokeObjectURL(url);
 }
-function clearSave() {
- if (!confirm('Clear all saved data and reset to demo roles?')) return;
- localStorage.removeItem(STORAGE_KEY);
- location.reload();
+
+async function clearSave() {
+  if (!confirm('Delete ALL roles and reset? This cannot be undone.')) return;
+  for (const r of roles) await dbDelete(r.id);
+  roles = [];
+  renderAll();
+  setStatus('idle');
 }
-/* ─── THEME TOGGLE ─── */
+
 function toggleTheme() {
- const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
- document.documentElement.dataset.theme = next;
- localStorage.setItem('rp-theme', next);
- updateThemeToggle();
- renderAll();
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem('rp-theme', next);
+  updateThemeToggle(); renderAll();
 }
 function updateThemeToggle() {
- const isDark = document.documentElement.dataset.theme === 'dark';
- document.getElementById('tt-light').classList.toggle('active', !isDark);
- document.getElementById('tt-dark').classList.toggle('active', isDark);
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  document.getElementById('tt-light').classList.toggle('active', !isDark);
+  document.getElementById('tt-dark').classList.toggle('active', isDark);
 }
-/* ─── DASHBOARD ─── */
+
 let currentTab = 'pipeline';
 function switchTab(tab) {
- currentTab = tab;
- document.getElementById('view-pipeline').style.display = tab === 'pipeline' ? '' : 'none';
- document.getElementById('view-dashboard').style.display = tab === 'dashboard' ? '' : 'none';
- document.getElementById('tab-pipeline').classList.toggle('active', tab === 'pipeline');
- document.getElementById('tab-dashboard').classList.toggle('active', tab === 'dashboard');
- if (tab === 'dashboard') renderDashboard();
+  currentTab = tab;
+  document.getElementById('view-pipeline').style.display = tab==='pipeline' ? '' : 'none';
+  document.getElementById('view-dashboard').style.display = tab==='dashboard' ? '' : 'none';
+  document.getElementById('tab-pipeline').classList.toggle('active', tab==='pipeline');
+  document.getElementById('tab-dashboard').classList.toggle('active', tab==='dashboard');
+  if (tab === 'dashboard') renderDashboard();
 }
+
 function getDashColors() {
- const d = document.documentElement.dataset.theme === 'dark';
- return {
- critical: d ? '#c24040':'#a83030', high: d ? '#c4861f':'#a36618',
- medium: d ? '#3a65d4':'#2952c4', low: d ? '#259e6f':'#1a7a52',
- active: d ? '#259e6f':'#1a7a52', approved: d ? '#3a65d4':'#2952c4',
- pending: d ? '#6b5cc4':'#4f3fa8', onhold: d ? '#c4861f':'#a36618',
- filled: d ? '#2a8ab8':'#1a6d94', cancelled: d ? '#4e6080':'#8090b0',
- confirmed: d ? '#259e6f':'#1a7a52', green: d ? '#259e6f':'#1a7a52',
- amber: d ? '#c4861f':'#a36618', red: d ? '#c24040':'#a83030',
- nodate: d ? '#4e6080':'#8090b0'
- };
+  const d = document.documentElement.dataset.theme === 'dark';
+  return {
+    critical:d?'#c24040':'#a83030', high:d?'#c4861f':'#a36618',
+    medium:d?'#3a65d4':'#2952c4', low:d?'#259e6f':'#1a7a52',
+    active:d?'#259e6f':'#1a7a52', approved:d?'#3a65d4':'#2952c4',
+    pending:d?'#6b5cc4':'#4f3fa8', onhold:d?'#c4861f':'#a36618',
+    filled:d?'#2a8ab8':'#1a6d94', cancelled:d?'#4e6080':'#8090b0',
+    confirmed:d?'#259e6f':'#1a7a52', green:d?'#259e6f':'#1a7a52',
+    amber:d?'#c4861f':'#a36618', red:d?'#c24040':'#a83030',
+    nodate:d?'#4e6080':'#8090b0'
+  };
 }
+
 function renderDashboard() {
- const el = document.getElementById('dash-inner');
- if (!roles.length) {
- el.innerHTML = `<div class="dash-empty"><div style="font-size:36px;opacity:0.18">📊</div><span>Add roles on the Pipeline tab to see analytics</span></div>`;
- return;
- }
- const C = getDashColors();
- const total = roles.length;
- const statusCounts = {}, priorityCounts = {critical:0,high:0,medium:0,low:0};
- const deptData = {};
- let totalBest = 0, totalWorst = 0, confirmed = 0, totalDur = 0, durCount = 0;
- const urgCounts = {confirmed:0,green:0,amber:0,red:0,nodate:0};
- roles.forEach(r => {
- statusCounts[r.status] = (statusCounts[r.status]||0) + 1;
- if (priorityCounts[r.priority] !== undefined) priorityCounts[r.priority]++;
- if (r.salBest) totalBest += +r.salBest;
- if (r.salWorst) totalWorst += +r.salWorst;
- const dept = r.dept||'Other';
- if (!deptData[dept]) deptData[dept] = {best:0,worst:0,count:0};
- deptData[dept].best += +r.salBest||0;
- deptData[dept].worst += +r.salWorst||0;
- deptData[dept].count++;
- if (r.confirmed) confirmed++;
- const sd=parseD(r.start), ed=parseD(r.end);
- if (sd&&ed) { totalDur+=daysBetween(sd,ed); durCount++; }
- urgCounts[getUrgency(r)]++;
- });
- const avgMonths = durCount ? Math.round(totalDur/durCount/30.4) : null;
- const fillRate = Math.round((statusCounts.filled||0)/total*100);
- const kpis = [
- {lbl:'Total Roles', val:total, sub:'in pipeline', acc:'var(--accent)'},
- {lbl:'Active / Approved', val:(statusCounts.active||0)+(statusCounts.approved||0), sub:'ready to hire', acc:`${C.active}`},
- {lbl:'Filled', val:statusCounts.filled||0, sub:`${fillRate}% fill rate`, acc:`${C.filled}`},
- {lbl:'Best-Case Budget', val:fmtMoney(totalBest), sub:'combined annual', acc:`${C.low}`},
- {lbl:'Worst-Case Budget', val:fmtMoney(totalWorst), sub:'combined annual', acc:`${C.critical}`},
- ];
- let html = `<div class="dash-kpi-row">${kpis.map(k=>`
- <div class="dash-kpi" style="--kpi-accent:${k.acc}">
- <div class="dash-kpi-lbl">${k.lbl}</div>
- <div class="dash-kpi-val">${k.val}</div>
- <div class="dash-kpi-sub">${k.sub}</div>
- </div>`).join('')}</div>`;
- const STATUS_ORDER = ['active','approved','pending','onhold','filled','cancelled'];
- const STATUS_LABELS = {active:'Active',approved:'Approved',pending:'Pending',onhold:'On Hold',filled:'Filled',cancelled:'Cancelled'};
- const maxStat = Math.max(1,...STATUS_ORDER.map(s=>statusCounts[s]||0));
- const statusBars = STATUS_ORDER.map(s => {
- const cnt = statusCounts[s]||0;
- const pct = Math.round(cnt/maxStat*100);
- return `<div class="stat-bar-row">
- <div class="stat-bar-label">${STATUS_LABELS[s]}</div>
- <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${pct}%;background:${C[s]};"></div></div>
- <div class="stat-bar-count">${cnt}</div>
- </div>`;
- }).join('');
- const PRI_ORDER = ['critical','high','medium','low'];
- const PRI_LABELS = {critical:'Critical',high:'High',medium:'Medium',low:'Low'};
- let angle = 0;
- let conicParts = '';
- PRI_ORDER.forEach(p => {
- const pct = priorityCounts[p]/total;
- const end = angle + pct*360;
- if (pct>0) conicParts += `${C[p]} ${angle.toFixed(1)}deg ${end.toFixed(1)}deg,`;
- angle = end;
- });
- conicParts = conicParts.slice(0,-1) || `var(--border) 0deg 360deg`;
- const priLegend = PRI_ORDER.map(p=>`<div class="donut-leg-row">
- <div class="donut-leg-swatch" style="background:${C[p]}"></div>
- <div class="donut-leg-lbl">${PRI_LABELS[p]}</div>
- <div class="donut-leg-val">${priorityCounts[p]}</div>
- </div>`).join('');
- html += `<div class="dash-grid-2">
- <div class="dash-panel">
- <div class="dash-panel-hdr">Roles by Status</div>
- <div class="dash-panel-body">${statusBars}</div>
- </div>
- <div class="dash-panel">
- <div class="dash-panel-hdr">Priority Breakdown</div>
- <div class="dash-panel-body">
- <div class="donut-wrap">
- <div class="donut-chart" style="background:conic-gradient(${conicParts})">
- <div class="donut-hole">
- <div class="donut-hole-val">${total}</div>
- <div class="donut-hole-lbl">Roles</div>
- </div>
- </div>
- <div class="donut-legend">${priLegend}</div>
- </div>
- </div>
- </div>
- </div>`;
- const deptEntries = Object.entries(deptData).sort((a,b)=>b[1].worst-a[1].worst);
- const maxDept = Math.max(1,...deptEntries.map(([,d])=>d.worst||d.best||1));
- const deptBars = deptEntries.map(([dept,d])=>{
- const bPct = Math.round((d.best/maxDept)*100);
- const wPct = Math.round((d.worst/maxDept)*100);
- return `<div class="stat-bar-row" style="flex-direction:column;align-items:stretch;gap:4px;margin-bottom:12px;">
- <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
- <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);">${esc(dept)}</span>
- <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);">${d.count} role${d.count!==1?'s':''}</span>
- </div>
- <div class="stat-bar-track" style="height:6px;"><div class="stat-bar-fill" style="width:${bPct}%;background:${C.low};"></div></div>
- <div class="stat-bar-track" style="height:6px;margin-top:2px;"><div class="stat-bar-fill" style="width:${wPct}%;background:${C.critical};opacity:0.7;"></div></div>
- </div>`;
- }).join('');
- const urgBoxes = [
- {key:'confirmed',lbl:'Confirmed',icon:'✓',bg:`${C.confirmed}14`,border:`${C.confirmed}40`,col:C.confirmed},
- {key:'green', lbl:'On Track 8+ wks',icon:'●',bg:`${C.green}14`,border:`${C.green}40`,col:C.green},
- {key:'amber', lbl:'Caution 4–8 wks',icon:'◑',bg:`${C.amber}14`,border:`${C.amber}40`,col:C.amber},
- {key:'red', lbl:'Urgent < 4 wks', icon:'!',bg:`${C.red}14`,border:`${C.red}40`,col:C.red},
- ].map(u=>`<div class="urg-box" style="--urg-bg:${u.bg};--urg-border:${u.border};--urg-color:${u.col};">
- <div class="urg-box-val">${urgCounts[u.key]}</div>
- <div class="urg-box-lbl">${u.icon} ${u.lbl}</div>
- </div>`).join('');
- const noDateBox = `<div class="urg-box" style="grid-column:span 2;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
- <div class="urg-box-lbl" style="margin-top:0;">⚬ No date set</div>
- <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:800;color:var(--muted);">${urgCounts.nodate}</div>
- </div>`;
- const avgDurStr = avgMonths !== null ? `${avgMonths} month${avgMonths!==1?'s':''}` : '—';
- const confirmPct = Math.round(confirmed/total*100);
- html += `<div class="dash-grid-2">
- <div class="dash-panel">
- <div class="dash-panel-hdr">Budget by Department <span style="font-size:8px;margin-left:auto;padding-left:12px;"><span style="color:${C.low}">▬ Best</span> &nbsp;<span style="color:${C.critical}">▬ Worst</span></span></div>
- <div class="dash-panel-body">${deptBars || '<div style="color:var(--muted);font-family:\'IBM Plex Mono\',monospace;font-size:10px;">No salary data entered</div>'}</div>
- </div>
- <div class="dash-panel">
- <div class="dash-panel-hdr">Urgency Snapshot</div>
- <div class="dash-panel-body">
- <div class="urg-grid" style="margin-bottom:8px;">${urgBoxes}</div>
- <div class="urg-grid">${noDateBox}</div>
- <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;">
- <div><div class="dash-kpi-lbl">Avg Hiring Window</div><div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:17px;font-weight:800;margin-top:3px;">${avgDurStr}</div></div>
- <div style="text-align:right;"><div class="dash-kpi-lbl">Confirmed</div><div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:17px;font-weight:800;margin-top:3px;color:${C.confirmed};">${confirmPct}%</div></div>
- </div>
- </div>
- </div>
- </div>`;
- const upcoming = [...roles]
- .filter(r=>parseD(r.start))
- .sort((a,b)=>parseD(a.start)-parseD(b.start))
- .slice(0,10);
- const tableRows = upcoming.map((r,i)=>{
- const sd=parseD(r.start), ed=parseD(r.end);
- const urg=getUrgency(r);
- const urgCol=C[urg]||C.nodate;
- const urgLbl={confirmed:'✓ Confirmed',green:'On Track',amber:'Caution',red:'Urgent',nodate:'No Date'}[urg];
- const dts=sd?daysBetween(TODAY,sd):null;
- const dtsTxt=dts===null?'—':dts<0?`${Math.abs(dts)}d overdue`:dts===0?'Today':`${dts}d`;
- const sm=STATUS_META[r.status]||STATUS_META.active;
- const col=getColor(i);
- return `<tr>
- <td><div style="display:flex;align-items:center;gap:8px;">
- <div style="width:3px;height:30px;border-radius:2px;background:${col};flex-shrink:0;"></div>
- <div><div class="td-name">${esc(r.name)}</div><div style="font-size:9px;color:var(--muted);margin-top:1px;">${esc(r.dept)}</div></div>
- </div></td>
- <td><span class="pill ${sm.cls}" style="font-size:8px;">${sm.icon} ${sm.label}</span></td>
- <td>${r.start||'—'}</td>
- <td style="color:${urgCol};font-weight:600;">${dtsTxt}</td>
- <td><span class="td-urg" style="color:${urgCol};"><span style="width:7px;height:7px;border-radius:50%;background:${urgCol};display:inline-block;"></span>${urgLbl}</span></td>
- <td>${r.salBest||r.salWorst?`<span style="color:${C.low};font-size:9px;">▼ ${fmtMoney(r.salBest)}</span>&nbsp;&nbsp;<span style="color:${C.critical};font-size:9px;">▲ ${fmtMoney(r.salWorst)}</span>`:'—'}</td>
- </tr>`;
- }).join('');
- html += `<div class="dash-panel" style="margin-bottom:16px;">
- <div class="dash-panel-hdr">Upcoming Roles — Sorted by Start Date</div>
- <table class="dash-table">
- <thead><tr>
- <th>Role</th><th>Status</th><th>Start Date</th><th>Days to Start</th><th>Urgency</th><th>Salary Range</th>
- </tr></thead>
- <tbody>${tableRows||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">No roles with dates set</td></tr>'}</tbody>
- </table>
- </div>`;
- el.innerHTML = html;
+  const el = document.getElementById('dash-inner');
+  if (!roles.length) {
+    el.innerHTML = `<div class="dash-empty"><div style="font-size:36px;opacity:0.18">📊</div><span>Add roles on the Pipeline tab to see analytics</span></div>`;
+    return;
+  }
+  const C = getDashColors();
+  const total = roles.length;
+  const statusCounts={}, priorityCounts={critical:0,high:0,medium:0,low:0}, deptData={};
+  let totalBest=0, totalWorst=0, confirmed=0, totalDur=0, durCount=0;
+  const urgCounts={confirmed:0,green:0,amber:0,red:0,nodate:0};
+  roles.forEach(r => {
+    statusCounts[r.status]=(statusCounts[r.status]||0)+1;
+    if(priorityCounts[r.priority]!==undefined) priorityCounts[r.priority]++;
+    if(r.salBest) totalBest+=+r.salBest;
+    if(r.salWorst) totalWorst+=+r.salWorst;
+    const dept=r.dept||'Other';
+    if(!deptData[dept]) deptData[dept]={best:0,worst:0,count:0};
+    deptData[dept].best+=+r.salBest||0; deptData[dept].worst+=+r.salWorst||0; deptData[dept].count++;
+    if(r.confirmed) confirmed++;
+    const sd=parseD(r.start),ed=parseD(r.end);
+    if(sd&&ed){totalDur+=daysBetween(sd,ed);durCount++;}
+    urgCounts[getUrgency(r)]++;
+  });
+  const avgMonths=durCount?Math.round(totalDur/durCount/30.4):null;
+  const fillRate=Math.round((statusCounts.filled||0)/total*100);
+  const kpis=[
+    {lbl:'Total Roles',val:total,sub:'in pipeline',acc:'var(--accent)'},
+    {lbl:'Active / Approved',val:(statusCounts.active||0)+(statusCounts.approved||0),sub:'ready to hire',acc:`${C.active}`},
+    {lbl:'Filled',val:statusCounts.filled||0,sub:`${fillRate}% fill rate`,acc:`${C.filled}`},
+    {lbl:'Best-Case Budget',val:fmtMoney(totalBest),sub:'combined annual',acc:`${C.low}`},
+    {lbl:'Worst-Case Budget',val:fmtMoney(totalWorst),sub:'combined annual',acc:`${C.critical}`},
+  ];
+  let html=`<div class="dash-kpi-row">${kpis.map(k=>`<div class="dash-kpi" style="--kpi-accent:${k.acc}"><div class="dash-kpi-lbl">${k.lbl}</div><div class="dash-kpi-val">${k.val}</div><div class="dash-kpi-sub">${k.sub}</div></div>`).join('')}</div>`;
+  const STATUS_ORDER=['active','approved','pending','onhold','filled','cancelled'];
+  const STATUS_LABELS={active:'Active',approved:'Approved',pending:'Pending',onhold:'On Hold',filled:'Filled',cancelled:'Cancelled'};
+  const maxStat=Math.max(1,...STATUS_ORDER.map(s=>statusCounts[s]||0));
+  const statusBars=STATUS_ORDER.map(s=>{const cnt=statusCounts[s]||0;const pct=Math.round(cnt/maxStat*100);return `<div class="stat-bar-row"><div class="stat-bar-label">${STATUS_LABELS[s]}</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${pct}%;background:${C[s]};"></div></div><div class="stat-bar-count">${cnt}</div></div>`;}).join('');
+  const PRI_ORDER=['critical','high','medium','low'];
+  const PRI_LABELS={critical:'Critical',high:'High',medium:'Medium',low:'Low'};
+  let angle=0,conicParts='';
+  PRI_ORDER.forEach(p=>{const pct=priorityCounts[p]/total;const end=angle+pct*360;if(pct>0)conicParts+=`${C[p]} ${angle.toFixed(1)}deg ${end.toFixed(1)}deg,`;angle=end;});
+  conicParts=conicParts.slice(0,-1)||`var(--border) 0deg 360deg`;
+  const priLegend=PRI_ORDER.map(p=>`<div class="donut-leg-row"><div class="donut-leg-swatch" style="background:${C[p]}"></div><div class="donut-leg-lbl">${PRI_LABELS[p]}</div><div class="donut-leg-val">${priorityCounts[p]}</div></div>`).join('');
+  html+=`<div class="dash-grid-2"><div class="dash-panel"><div class="dash-panel-hdr">Roles by Status</div><div class="dash-panel-body">${statusBars}</div></div><div class="dash-panel"><div class="dash-panel-hdr">Priority Breakdown</div><div class="dash-panel-body"><div class="donut-wrap"><div class="donut-chart" style="background:conic-gradient(${conicParts})"><div class="donut-hole"><div class="donut-hole-val">${total}</div><div class="donut-hole-lbl">Roles</div></div></div><div class="donut-legend">${priLegend}</div></div></div></div></div>`;
+  const deptEntries=Object.entries(deptData).sort((a,b)=>b[1].worst-a[1].worst);
+  const maxDept=Math.max(1,...deptEntries.map(([,d])=>d.worst||d.best||1));
+  const deptBars=deptEntries.map(([dept,d])=>{const bPct=Math.round((d.best/maxDept)*100);const wPct=Math.round((d.worst/maxDept)*100);return `<div class="stat-bar-row" style="flex-direction:column;align-items:stretch;gap:4px;margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);">${esc(dept)}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);">${d.count} role${d.count!==1?'s':''}</span></div><div class="stat-bar-track" style="height:6px;"><div class="stat-bar-fill" style="width:${bPct}%;background:${C.low};"></div></div><div class="stat-bar-track" style="height:6px;margin-top:2px;"><div class="stat-bar-fill" style="width:${wPct}%;background:${C.critical};opacity:0.7;"></div></div></div>`;}).join('');
+  const urgBoxes=[
+    {key:'confirmed',lbl:'Confirmed',icon:'✓',bg:`${C.confirmed}14`,border:`${C.confirmed}40`,col:C.confirmed},
+    {key:'green',lbl:'On Track 8+ wks',icon:'●',bg:`${C.green}14`,border:`${C.green}40`,col:C.green},
+    {key:'amber',lbl:'Caution 4–8 wks',icon:'◑',bg:`${C.amber}14`,border:`${C.amber}40`,col:C.amber},
+    {key:'red',lbl:'Urgent < 4 wks',icon:'!',bg:`${C.red}14`,border:`${C.red}40`,col:C.red},
+  ].map(u=>`<div class="urg-box" style="--urg-bg:${u.bg};--urg-border:${u.border};--urg-color:${u.col};"><div class="urg-box-val">${urgCounts[u.key]}</div><div class="urg-box-lbl">${u.icon} ${u.lbl}</div></div>`).join('');
+  const noDateBox=`<div class="urg-box" style="grid-column:span 2;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;"><div class="urg-box-lbl" style="margin-top:0;">⚬ No date set</div><div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:800;color:var(--muted);">${urgCounts.nodate}</div></div>`;
+  const avgDurStr=avgMonths!==null?`${avgMonths} month${avgMonths!==1?'s':''}` :'—';
+  const confirmPct=Math.round(confirmed/total*100);
+  html+=`<div class="dash-grid-2"><div class="dash-panel"><div class="dash-panel-hdr">Budget by Department <span style="font-size:8px;margin-left:auto;padding-left:12px;"><span style="color:${C.low}">▬ Best</span> &nbsp;<span style="color:${C.critical}">▬ Worst</span></span></div><div class="dash-panel-body">${deptBars||'<div style="color:var(--muted);font-family:\'IBM Plex Mono\',monospace;font-size:10px;">No salary data entered</div>'}</div></div><div class="dash-panel"><div class="dash-panel-hdr">Urgency Snapshot</div><div class="dash-panel-body"><div class="urg-grid" style="margin-bottom:8px;">${urgBoxes}</div><div class="urg-grid">${noDateBox}</div><div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;"><div><div class="dash-kpi-lbl">Avg Hiring Window</div><div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:17px;font-weight:800;margin-top:3px;">${avgDurStr}</div></div><div style="text-align:right;"><div class="dash-kpi-lbl">Confirmed</div><div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:17px;font-weight:800;margin-top:3px;color:${C.confirmed};">${confirmPct}%</div></div></div></div></div></div>`;
+  const upcoming=[...roles].filter(r=>parseD(r.start)).sort((a,b)=>parseD(a.start)-parseD(b.start)).slice(0,10);
+  const tableRows=upcoming.map((r,i)=>{
+    const sd=parseD(r.start);const urg=getUrgency(r);const urgCol=C[urg]||C.nodate;
+    const urgLbl={confirmed:'✓ Confirmed',green:'On Track',amber:'Caution',red:'Urgent',nodate:'No Date'}[urg];
+    const dts=sd?daysBetween(TODAY,sd):null;
+    const dtsTxt=dts===null?'—':dts<0?`${Math.abs(dts)}d overdue`:dts===0?'Today':`${dts}d`;
+    const sm=STATUS_META[r.status]||STATUS_META.active;const col=getColor(i);
+    return `<tr><td><div style="display:flex;align-items:center;gap:8px;"><div style="width:3px;height:30px;border-radius:2px;background:${col};flex-shrink:0;"></div><div><div class="td-name">${esc(r.name)}</div><div style="font-size:9px;color:var(--muted);margin-top:1px;">${esc(r.dept)}</div></div></div></td><td><span class="pill ${sm.cls}" style="font-size:8px;">${sm.icon} ${sm.label}</span></td><td>${r.start||'—'}</td><td style="color:${urgCol};font-weight:600;">${dtsTxt}</td><td><span class="td-urg" style="color:${urgCol};"><span style="width:7px;height:7px;border-radius:50%;background:${urgCol};display:inline-block;"></span>${urgLbl}</span></td><td>${r.salBest||r.salWorst?`<span style="color:${C.low};font-size:9px;">▼ ${fmtMoney(r.salBest)}</span>&nbsp;&nbsp;<span style="color:${C.critical};font-size:9px;">▲ ${fmtMoney(r.salWorst)}</span>`:'—'}</td></tr>`;
+  }).join('');
+  html+=`<div class="dash-panel" style="margin-bottom:16px;"><div class="dash-panel-hdr">Upcoming Roles — Sorted by Start Date</div><table class="dash-table"><thead><tr><th>Role</th><th>Status</th><th>Start Date</th><th>Days to Start</th><th>Urgency</th><th>Salary Range</th></tr></thead><tbody>${tableRows||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">No roles with dates set</td></tr>'}</tbody></table></div>`;
+  el.innerHTML = html;
 }
+
 function renderAll() {
- renderList(); renderSummary(); renderGantt();
- if (currentTab === 'dashboard') renderDashboard();
- updateThemeToggle();
- scheduleSave();
+  renderList(); renderSummary(); renderGantt();
+  if (currentTab === 'dashboard') renderDashboard();
+  updateThemeToggle();
 }
+
 document.getElementById('dragList').addEventListener('dragover', e=>e.preventDefault());
-/* ─── STARTUP ─── */
-const mk = (n,d,p,st,s,eM,sb,sw,conf=false) => ({
- id:nextId++, name:n, dept:d, priority:p, status:st,
- start:fmtDate(addMonths(TODAY,s)), end:fmtDate(addMonths(TODAY,eM)),
- confirmed:conf, salBest:String(sb), salWorst:String(sw)
-});
-const SEED_ROLES = () => [
- mk('Senior Backend Engineer','Engineering','critical','active', 0, 9, 70000,90000,true),
- mk('Product Manager', 'Product', 'high', 'approved', 0, 12, 65000,85000,false),
- mk('UX Designer', 'Design', 'high', 'pending', 2, 10, 55000,70000,false),
- mk('Sales Lead', 'Sales', 'medium', 'onhold', 3, 11, 60000,80000,false),
- mk('Data Analyst', 'Data', 'low', 'approved', 1, 8, 45000,60000,false),
- mk('DevOps Engineer', 'Engineering','high', 'pending', 1, 7, 65000,80000,false),
- mk('Marketing Manager', 'Marketing', 'medium', 'approved', 4, 13, 55000,70000,false),
-];
+
+// ── STARTUP ──
 (async () => {
- const hasLocal = loadLocal();
- if (hasLocal) { renderAll(); }
- const hasSP = await loadFromSharePoint();
- if (!hasSP && !hasLocal) {
- roles = SEED_ROLES();
- setStatus('idle');
- }
- renderAll();
+  const loaded = await dbLoad();
+  if (!loaded) {
+    // No data yet — start empty, no seed roles
+    setStatus('idle');
+  }
+  renderAll();
 })();
 </script>
 </body>
