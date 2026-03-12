@@ -100,6 +100,7 @@ const URG_CLASS = { confirmed:'u-confirmed', green:'u-green', amber:'u-amber', r
 const URG_LABEL = { confirmed:'✓ Confirmed', green:'8+ wks', amber:'4–8 wks', red:'Under 4 wks', nodate:'No date' };
 
 let roles = [];
+let clients = [];
 let dragSrc = null;
 let editingId = null;
 let currentTab = 'pipeline';
@@ -169,7 +170,8 @@ function mapDbToRole(row) {
     salBest: row.sal_best ?? '',
     salWorst: row.sal_worst ?? '',
     edited: !!row.edited,
-    sort_order: row.sort_order ?? 0
+    sort_order: row.sort_order ?? 0,
+    client: row.client || '',
   };
 }
 
@@ -1036,7 +1038,19 @@ function renderDashboard() {
 
   el.innerHTML = html;
 }
+function rebuildClients() {
+  clients = [...new Set(
+    roles
+      .map(r => (r.client || '').trim())
+      .filter(Boolean)
+  )].sort((a,b) => a.localeCompare(b));
+}
 
+function renderClientOptions() {
+  const dl = document.getElementById('client-options');
+  if (!dl) return;
+  dl.innerHTML = clients.map(c => `<option value="${esc(c)}"></option>`).join('');
+}
 /* ===========================
   17) RENDER ALL + STARTUP
 =========================== */
