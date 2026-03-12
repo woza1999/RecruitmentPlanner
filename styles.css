@@ -18,23 +18,59 @@
 }
 
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-body {
-  background: var(--bg);
+/* =========================================================
+   LIGHT THEME — Cinematic soft glow background
+========================================================= */
+
+body:not([data-theme="dark"]) {
+  background:
+    radial-gradient(900px 700px at 20% 20%, rgba(41,82,196,0.16), transparent 55%),
+    radial-gradient(700px 600px at 80% 30%, rgba(26,109,148,0.12), transparent 60%),
+    radial-gradient(900px 700px at 50% 90%, rgba(163,102,24,0.12), transparent 60%),
+    linear-gradient(180deg, #f5f7fc, #eef1f8);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  min-height: 100vh;
-  line-height: 1.5;
+  position: relative;
+  overflow-x: hidden;
 }
-/* Subtle grid background */
-body::before {
-  content:'';
-  position:fixed; inset:0;
-  background-image:
-    linear-gradient(rgba(58,101,212,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(58,101,212,0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events:none; z-index:0;
+
+body:not([data-theme="dark"])::before {
+  content:"";
+  position: fixed;
+  inset: -25%;
+  pointer-events: none;
+  z-index: 0;
+
+  background:
+    linear-gradient(135deg,
+      transparent 42%,
+      rgba(41,82,196,0.0) 46%,
+      rgba(41,82,196,0.18) 50%,
+      rgba(41,82,196,0.0) 54%,
+      transparent 58%
+    ),
+    linear-gradient(135deg,
+      transparent 52%,
+      rgba(26,109,148,0.0) 56%,
+      rgba(26,109,148,0.15) 60%,
+      rgba(26,109,148,0.0) 64%,
+      transparent 68%
+    );
+
+  filter: blur(14px);
+  transform: rotate(-6deg);
+  opacity: 0.6;
+}
+
+body:not([data-theme="dark"])::after {
+  content:"";
+  position: fixed;
+  inset: 0;
+
+  background-image: radial-gradient(rgba(0,0,0,0.06) 1px, transparent 1px);
+  background-size: 120px 120px;
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: 0;
 }
 .wrap { position:relative; z-index:1; max-width:1480px; margin:0 auto; padding:28px 24px; }
 
