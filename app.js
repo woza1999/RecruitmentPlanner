@@ -1,26 +1,38 @@
 /* =========================================================
   Recruitment Planner — Supabase-backed (NO AUTH / PUBLIC)
   - No login
-  - Uses anon key directly
+  - Uses anon key directly (NOT recommended for public repos)
   - Requires RLS policies that allow anon access
 ========================================================= */
 
 /* ===========================
-  1) SUPABASE CONFIG  ✅ EDIT
+  1) SUPABASE CONFIG ✅ EDIT
 =========================== */
 
 const SUPABASE_URL = "https://yxlvfockhdevksurayma.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_rT5fXqsS8Fz_spSQRU9epQ_DZ1_p7ZR"; // <-- paste locally (do NOT commit if repo is public)
+const SUPABASE_ANON_KEY = "sb_publishable_rT5fXqsS8Fz_spSQRU9epQ_DZ1_p7ZR"; 
 
 // Supabase UMD global is `supabase`
-if (!window.supabase) {
-  console.error("Supabase library not loaded. Check your index.html <script src=...supabase-js...>");
+if (!window.supabase || !window.supabase.createClient) {
+  console.error("Supabase library not loaded. Check index.html has the supabase-js <script>.");
 }
 
-const { createClient } = window.supabase;
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ---------- UI HELPERS ----------
+/* ===========================
+  1.5) GLOBAL ERROR HANDLERS
+=========================== */
+window.addEventListener("unhandledrejection", (event) => {
+  UI?.error?.("Unexpected error", event.reason?.message || String(event.reason));
+});
+window.addEventListener("error", (event) => {
+  UI?.error?.("Unexpected error", event.message || "Something went wrong");
+});
+
+/* ===========================
+  2) UI HELPERS (TOAST/LOADING)
+=========================== */
+
 const UI = {
   loadingCount: 0,
 
@@ -85,20 +97,21 @@ function escapeHtml(str) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
-window.addEventListener("unhandledrejection", (event) => {
-  UI.error("Unexpected error", event.reason?.message || String(event.reason));
-});
-window.addEventListener("error", (event) => {
-  UI.error("Unexpected error", event.message || "Something went wrong");
-});
-// ---------- SUPABASE WRAPPER ----------
+
+// Use one escape for HTML templates too (avoid `esc()` vs `escapeHtml()` confusion)
+const esc = escapeHtml;
+
+/* ===========================
+  3) SUPABASE WRAPPER
+=========================== */
+
 async function sbCall(actionName, fn, { showSuccess = false, successMsg = "Done" } = {}) {
   UI.setGlobalLoading(true);
 
   try {
     const result = await fn();
 
-    // Supabase typically returns { data, error }
+    // Supabase returns { data, error } for most calls
     if (result?.error) {
       const msg = result.error.message || "Unknown error";
       UI.error(`${actionName} failed`, msg);
@@ -109,7 +122,6 @@ async function sbCall(actionName, fn, { showSuccess = false, successMsg = "Done"
     return result?.data ?? result;
 
   } catch (err) {
-    // Catch unexpected runtime errors too (not just supabase 'error')
     const msg = err?.message || String(err);
     UI.error(`${actionName} failed`, msg);
     throw err;
@@ -120,7 +132,7 @@ async function sbCall(actionName, fn, { showSuccess = false, successMsg = "Done"
 }
 
 /* ===========================
-  2) UTILITIES / CONSTANTS
+  4) UTILITIES / CONSTANTS
 =========================== */
 
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -136,14 +148,6 @@ function fmtMoney(v){
   return '£' + Number(v).toLocaleString('en-GB');
 }
 function fmtDL(d){ return MON[d.getMonth()]+' '+d.getDate()+'\''+String(d.getFullYear()).slice(2); }
-
-function esc(s){
-  return String(s ?? '')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
-}
 
 // Colour tokens
 const PALETTE = ['#2952c4','#1a7a52','#a36618','#4f3fa8','#903f18','#1a6d94','#7030a0','#a83030'];
@@ -165,7 +169,7 @@ const URG_CLASS = { confirmed:'u-confirmed', green:'u-green', amber:'u-amber', r
 const URG_LABEL = { confirmed:'✓ Confirmed', green:'8+ wks', amber:'4–8 wks', red:'Under 4 wks', nodate:'No date' };
 
 /* ===========================
-  2.5) GLOBAL STATE
+  5) GLOBAL STATE
 =========================== */
 
 let roles = [];
@@ -175,14 +179,8 @@ let editingId = null;
 let currentTab = 'pipeline';
 let activeClientFilter = '';
 
-/* Default form dates */
-const fStartEl = document.getElementById('f-start');
-const fEndEl = document.getElementById('f-end');
-if (fStartEl) fStartEl.value = fmtDate(TODAY);
-if (fEndEl) fEndEl.value = fmtDate(addMonths(TODAY, 6));
-
 /* ===========================
-  3) STATUS INDICATOR
+  6) STATUS INDICATOR
 =========================== */
 
 const STATUS_CFG = {
@@ -204,7 +202,7 @@ function setStatus(key) {
 }
 
 /* ===========================
-  4) FILTERING (CLIENT CHIP)
+  7) FILTERING (CLIENT CHIP)
 =========================== */
 
 function setClientFilter(client) {
@@ -233,7 +231,7 @@ function renderClientChip() {
 }
 
 /* ===========================
-  5) URGENCY + COLORS
+  8) URGENCY + COLORS
 =========================== */
 
 function getUrgency(r) {
@@ -253,7 +251,7 @@ function getURGColors() {
 }
 
 /* ===========================
-  6) SUPABASE DATA MAPPING
+  9) SUPABASE DATA MAPPING
 =========================== */
 
 function mapDbToRole(row) {
@@ -291,7 +289,7 @@ function mapRoleToDb(r) {
 }
 
 /* ===========================
-  7) SUPABASE CRUD (PUBLIC)
+  10) SUPABASE CRUD (PUBLIC)
 =========================== */
 
 async function loadRolesFromSupabase() {
@@ -311,10 +309,37 @@ async function loadRolesFromSupabase() {
     return true;
 
   } catch (err) {
-    // sbCall already shows a toast with the error message
     console.error("Load failed:", err);
     setStatus('error');
     return false;
+  }
+}
+
+async function insertRoleToSupabase(role, sortOrder) {
+  setStatus('saving');
+
+  const payload = {
+    ...mapRoleToDb(role),
+    sort_order: sortOrder
+  };
+
+  try {
+    const data = await sbCall("Create role", () =>
+      supabase
+        .from('roles')
+        .insert(payload)
+        .select('*')
+        .single(),
+      { showSuccess: true, successMsg: "Role created" }
+    );
+
+    setStatus('saved');
+    return mapDbToRole(data);
+
+  } catch (err) {
+    console.error("Insert failed:", err);
+    setStatus('error');
+    return null;
   }
 }
 
@@ -340,34 +365,29 @@ async function updateRoleInSupabase(id, patch) {
   }
 }
 
-  setStatus('saved');
-  return mapDbToRole(data);
-
-async function updateRoleInSupabase(id, patch) {
+async function deleteRoleFromSupabase(id) {
   setStatus('saving');
 
-  const { error } = await sb
-    .from('roles')
-    .update(patch)
-    .eq('id', id);
+  try {
+    await sbCall("Delete role", () =>
+      supabase
+        .from('roles')
+        .delete()
+        .eq('id', id),
+      { showSuccess: true, successMsg: "Deleted" }
+    );
 
-  if (error) {
-    console.error("Update failed:", error);
+    setStatus('saved');
+    return true;
+
+  } catch (err) {
+    console.error("Delete failed:", err);
     setStatus('error');
     return false;
   }
-
-  setStatus('saved');
-  return true;
 }
 
-  setStatus('saved');
-  return true;
-
 async function persistSortOrder() {
-  setStatus('saving');
-
- async function persistSortOrder() {
   setStatus('saving');
 
   try {
@@ -389,18 +409,8 @@ async function persistSortOrder() {
   }
 }
 
-  if (anyErr) {
-    console.error("Sort persist failed:", anyErr.error);
-    setStatus('error');
-    return false;
-  }
-
-  setStatus('saved');
-  return true;
-}
-
 /* ===========================
-  8) CLIENT LIST (DATALIST)
+  11) CLIENT LIST (DATALIST)
 =========================== */
 
 function rebuildClients() {
@@ -418,7 +428,7 @@ function renderClientOptions() {
 }
 
 /* ===========================
-  9) DUPLICATE ROLE (COPY BUTTON)
+  12) DUPLICATE ROLE (COPY)
 =========================== */
 
 async function copyRole(id, e) {
@@ -452,7 +462,7 @@ async function copyRole(id, e) {
 }
 
 /* ===========================
-  10) RENDER LIST
+  13) RENDER LIST
 =========================== */
 
 function renderList() {
@@ -511,16 +521,16 @@ function renderList() {
           </div>
 
           <div class="card-pills">
-            <span class="pill ${PRIORITY_CLASS[r.priority]}">${PRIORITY_ICON[r.priority]} ${r.priority}</span>
-            <span class="pill ${sm.cls}">${sm.icon} ${sm.label}</span>
-            <span class="pill ${URG_CLASS[urg]}">${URG_LABEL[urg]}</span>
+            <span class="pill ${PRIORITY_CLASS[r.priority]}">${PRIORITY_ICON[r.priority]} ${esc(r.priority)}</span>
+            <span class="pill ${sm.cls}">${esc(sm.icon)} ${esc(sm.label)}</span>
+            <span class="pill ${URG_CLASS[urg]}">${esc(URG_LABEL[urg])}</span>
           </div>
 
           <div class="card-tags">
             <span class="tag">📁 ${esc(r.dept)}</span>
             ${r.client ? `<span class="tag">🏢 ${esc(r.client)}</span>` : ''}
-            <span class="tag">📅 ${sl}</span>
-            <span class="tag">→ ${el}</span>
+            <span class="tag">📅 ${esc(sl)}</span>
+            <span class="tag">→ ${esc(el)}</span>
             ${daysChip}
           </div>
 
@@ -589,20 +599,19 @@ const dragListEl = document.getElementById('dragList');
 if (dragListEl) dragListEl.addEventListener('dragover', (e) => e.preventDefault());
 
 /* ===========================
-  11) SUMMARY
+  14) SUMMARY
 =========================== */
 
 function renderSummary() {
   const viewRoles = getFilteredRoles();
 
-  let best = 0, worst = 0, active = 0, onhold = 0, filled = 0;
+  let best = 0, worst = 0, active = 0, onhold = 0;
 
   viewRoles.forEach(r => {
     if (r.salBest) best += +r.salBest;
     if (r.salWorst) worst += +r.salWorst;
     if (r.status === 'active' || r.status === 'approved') active++;
     if (r.status === 'onhold') onhold++;
-    if (r.status === 'filled') filled++;
   });
 
   const cards = [
@@ -617,9 +626,9 @@ function renderSummary() {
   if (sum) {
     sum.innerHTML = cards.map(c => `
       <div class="sum-card" style="--card-accent:${c.acc}">
-        <div class="sum-lbl">${c.lbl}</div>
-        <div class="sum-val">${c.val}</div>
-        <div class="sum-sub">${c.sub}</div>
+        <div class="sum-lbl">${esc(c.lbl)}</div>
+        <div class="sum-val">${esc(c.val)}</div>
+        <div class="sum-sub">${esc(c.sub)}</div>
       </div>
     `).join('');
   }
@@ -640,7 +649,7 @@ function renderSummary() {
 }
 
 /* ===========================
-  12) GANTT
+  15) GANTT
 =========================== */
 
 function renderGantt() {
@@ -729,7 +738,7 @@ function renderGantt() {
       </div>
 
       <div class="g-status-cell">
-        <span class="pill ${sm.cls}" style="font-size:8px;">${sm.icon} ${sm.label}</span>
+        <span class="pill ${sm.cls}" style="font-size:8px;">${esc(sm.icon)} ${esc(sm.label)}</span>
       </div>
 
       <div style="flex:1;">
@@ -743,7 +752,7 @@ function renderGantt() {
       html += `<div class="g-bar ${extraBarClass}"
         style="left:${barL}px;width:${barW}px;background:${finalColor}20;border:1px solid ${finalColor}55;"
         onmouseenter="showTip(event,${i})" onmouseleave="hideTip()">
-        <span style="color:${finalColor};font-weight:600;">${urgTxt}</span>
+        <span style="color:${finalColor};font-weight:600;">${esc(urgTxt)}</span>
       </div>`;
 
       if (bestW > 0)  html += `<div class="g-sal-best" style="left:${barL}px;width:${bestW}px"></div>`;
@@ -760,7 +769,7 @@ function renderGantt() {
 }
 
 /* ===========================
-  13) TOOLTIP
+  16) TOOLTIP
 =========================== */
 
 function showTip(_e, i) {
@@ -788,10 +797,10 @@ function showTip(_e, i) {
   tip.innerHTML = `
     <div class="tt-name">${esc(r.name)}</div>
     ${r.client ? `<div class="tt-row"><span>🏢 ${esc(r.client)}</span></div>` : ''}
-    <div class="tt-row"><span>📁 ${esc(r.dept)}</span><span>${PRIORITY_ICON[r.priority]} ${r.priority}</span></div>
-    <div class="tt-row"><span>${sm.icon} ${sm.label}</span><span>${urgFull}</span></div>
-    <div class="tt-row"><span>📅 ${r.start||'—'}</span><span>→ ${r.end||'—'}</span></div>
-    <div>⏱ ${dur}</div>
+    <div class="tt-row"><span>📁 ${esc(r.dept)}</span><span>${esc(PRIORITY_ICON[r.priority])} ${esc(r.priority)}</span></div>
+    <div class="tt-row"><span>${esc(sm.icon)} ${esc(sm.label)}</span><span>${esc(urgFull)}</span></div>
+    <div class="tt-row"><span>📅 ${esc(r.start||'—')}</span><span>→ ${esc(r.end||'—')}</span></div>
+    <div>⏱ ${esc(dur)}</div>
     <div class="tt-row" style="margin-top:4px;padding-top:4px;border-top:1px solid var(--border2)">
       <span class="tt-g">▼ Best: ${fmtMoney(r.salBest)}</span>
       <span class="tt-r">▲ Worst: ${fmtMoney(r.salWorst)}</span>
@@ -810,7 +819,7 @@ document.addEventListener('mousemove', (e) => {
 function hideTip(){ const t=document.getElementById('tip'); if (t) t.style.display='none'; }
 
 /* ===========================
-  14) CRUD ACTIONS (UI)
+  17) CRUD ACTIONS (UI)
 =========================== */
 
 async function addRole() {
@@ -851,8 +860,12 @@ async function addRole() {
   const sbEl = document.getElementById('f-sal-best'); if (sbEl) sbEl.value='';
   const swEl = document.getElementById('f-sal-worst'); if (swEl) swEl.value='';
   const conf = document.getElementById('f-confirmed'); if (conf) conf.checked=false;
-  if (fStartEl) fStartEl.value=fmtDate(TODAY);
-  if (fEndEl) fEndEl.value=fmtDate(addMonths(TODAY,6));
+
+  // default dates
+  const fStartEl = document.getElementById('f-start');
+  const fEndEl = document.getElementById('f-end');
+  if (fStartEl) fStartEl.value = fmtDate(TODAY);
+  if (fEndEl) fEndEl.value = fmtDate(addMonths(TODAY, 6));
 
   renderAll();
 }
@@ -879,7 +892,7 @@ async function toggleConfirmed(id, val) {
 }
 
 /* ===========================
-  15) EDIT DRAWER
+  18) EDIT DRAWER
 =========================== */
 
 function openDrawer(id, e) {
@@ -952,7 +965,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ===========================
-  16) FILTER + SCROLL HINT
+  19) FILTER + SCROLL HINT
 =========================== */
 
 function filterList() {
@@ -995,7 +1008,7 @@ function updateScrollHint() {
 if (dragListEl) dragListEl.addEventListener('scroll', updateScrollHint);
 
 /* ===========================
-  17) EXPORT + RESET
+  20) EXPORT + RESET
 =========================== */
 
 function exportCSV() {
@@ -1004,11 +1017,14 @@ function exportCSV() {
   const rows = viewRoles.map((r, i) => {
     const urg = URG_LABEL[getUrgency(r)];
     return [
-      i+1, `"${String(r.name).replace(/"/g,'""')}"`, `"${String(r.client||'').replace(/"/g,'""')}"`,
+      i+1,
+      `"${String(r.name).replace(/"/g,'""')}"`,
+      `"${String(r.client||'').replace(/"/g,'""')}"`,
       r.dept, r.priority, r.status, r.start||'', r.end||'',
       r.confirmed ? 'Yes' : 'No', r.salBest||'', r.salWorst||'', urg
     ].join(',');
   });
+
   const csv = [headers.join(','), ...rows].join('\n');
   const blob = new Blob([csv], { type:'text/csv' });
   const url = URL.createObjectURL(blob);
@@ -1028,9 +1044,12 @@ async function clearSave() {
 
   setStatus('saving');
 
-  const del = await sb.from('roles').delete().neq('id', 0);
-  if (del.error) {
-    console.error(del.error);
+  try {
+    await sbCall("Reset data", () =>
+      supabase.from('roles').delete().neq('id', 0),
+      { showSuccess: true, successMsg: "Database cleared" }
+    );
+  } catch (e) {
     setStatus('error');
     return;
   }
@@ -1048,7 +1067,7 @@ async function clearSave() {
 }
 
 /* ===========================
-  18) THEME TOGGLE + TABS
+  21) THEME TOGGLE + TABS
 =========================== */
 
 function toggleTheme() {
@@ -1075,7 +1094,7 @@ function switchTab(tab) {
 }
 
 /* ===========================
-  19) DASHBOARD
+  22) DASHBOARD
 =========================== */
 
 function getDashColors() {
@@ -1131,15 +1150,12 @@ function renderDashboard() {
 
   // Core totals
   const statusCounts = {};
-  const priorityCounts = {critical:0,high:0,medium:0,low:0};
-  let totalBest = 0, totalWorst = 0, confirmed = 0;
+  let totalBest = 0, totalWorst = 0;
 
   viewRoles.forEach(r => {
     statusCounts[r.status] = (statusCounts[r.status]||0) + 1;
-    if (priorityCounts[r.priority] !== undefined) priorityCounts[r.priority]++;
     if (r.salBest) totalBest += +r.salBest;
     if (r.salWorst) totalWorst += +r.salWorst;
-    if (r.confirmed) confirmed++;
   });
 
   const fillRate = Math.round((statusCounts.filled||0)/total*100);
@@ -1152,12 +1168,15 @@ function renderDashboard() {
     {lbl:'Worst-Case Budget', val:fmtMoney(totalWorst), sub:'combined annual', acc:`${C.critical}`},
   ];
 
-  let html = `<div class="dash-kpi-row">${kpis.map(k=>`
-    <div class="dash-kpi" style="--kpi-accent:${k.acc}">
-      <div class="dash-kpi-lbl">${k.lbl}</div>
-      <div class="dash-kpi-val">${k.val}</div>
-      <div class="dash-kpi-sub">${k.sub}</div>
-    </div>`).join('')}</div>`;
+  let html = `<div class="dash-kpi-row">${
+    kpis.map(k => `
+      <div class="dash-kpi" style="--kpi-accent:${k.acc}">
+        <div class="dash-kpi-lbl">${esc(k.lbl)}</div>
+        <div class="dash-kpi-val">${esc(k.val)}</div>
+        <div class="dash-kpi-sub">${esc(k.sub)}</div>
+      </div>
+    `).join('')
+  }</div>`;
 
   // Client Exposure table
   html += `
@@ -1189,7 +1208,7 @@ function renderDashboard() {
 }
 
 /* ===========================
-  20) RENDER ALL + STARTUP
+  23) RENDER ALL + STARTUP
 =========================== */
 
 function renderAll() {
@@ -1205,15 +1224,20 @@ function renderAll() {
 }
 
 (async () => {
+  // Default form dates (only after DOM exists; script is at end of body)
+  const fStartEl = document.getElementById('f-start');
+  const fEndEl = document.getElementById('f-end');
+  if (fStartEl) fStartEl.value = fmtDate(TODAY);
+  if (fEndEl) fEndEl.value = fmtDate(addMonths(TODAY, 6));
+
   const ok = await loadRolesFromSupabase();
   if (!ok) setStatus('warn');
   renderAll();
 })();
 
 /* ===========================
-  21) Expose functions for onclick=""
+  24) Expose functions for onclick=""
 =========================== */
-
 window.toggleTheme = toggleTheme;
 window.switchTab = switchTab;
 window.exportCSV = exportCSV;

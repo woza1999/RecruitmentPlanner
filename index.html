@@ -23,14 +23,16 @@
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<!-- Global loading bar (optional but nice) -->
-<div id="globalLoading" class="global-loading hidden">
-  <div class="global-loading__bar"></div>
-</div>
 
-<!-- Toast container -->
-<div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 <body>
+  <!-- ✅ MUST be inside <body> -->
+  <div id="globalLoading" class="global-loading hidden">
+    <div class="global-loading__bar"></div>
+  </div>
+
+  <!-- ✅ MUST be inside <body> -->
+  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
   <div class="wrap">
 
     <!-- HEADER -->
