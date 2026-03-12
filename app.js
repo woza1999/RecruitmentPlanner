@@ -725,6 +725,7 @@ function openDrawer(id, e) {
 
   document.getElementById('drawer-title').textContent = r.name;
   document.getElementById('e-name').value = r.name;
+  document.getElementById('e-client').value = r.client || '';
   document.getElementById('e-dept').value = r.dept;
   document.getElementById('e-priority').value = r.priority;
   document.getElementById('e-status').value = r.status || 'active';
@@ -764,6 +765,7 @@ async function saveEdit() {
   r.name = name;
   r.dept = document.getElementById('e-dept').value;
   r.priority = document.getElementById('e-priority').value;
+  r.client = document.getElementById('e-client')?.value.trim() || '';
   r.status = document.getElementById('e-status').value;
   r.start = start;
   r.end = end;
