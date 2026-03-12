@@ -815,3 +815,6 @@ select.fi option { background:var(--surface2); }
   opacity: 0.7;
 }
 .toast__close:hover { opacity: 1; }
+
+.toast-container { pointer-events: none; }
+.toast { pointer-events: auto; }
