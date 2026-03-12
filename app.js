@@ -695,16 +695,18 @@ async function addRole() {
   }
 
   const role = {
-    name,
-    dept: document.getElementById('f-dept')?.value || 'Other',
-    priority: document.getElementById('f-priority')?.value || 'medium',
-    status: document.getElementById('f-status')?.value || 'active',
-    start, end,
-    confirmed: !!document.getElementById('f-confirmed')?.checked,
-    salBest: document.getElementById('f-sal-best')?.value || '',
-    salWorst: document.getElementById('f-sal-worst')?.value || '',
-    edited: false
-  };
+  name,
+  dept: document.getElementById('f-dept')?.value || 'Other',
+  client: document.getElementById('f-client')?.value.trim() || '',
+  priority: document.getElementById('f-priority')?.value || 'medium',
+  status: document.getElementById('f-status')?.value || 'active',
+  start,
+  end,
+  confirmed: !!document.getElementById('f-confirmed')?.checked,
+  salBest: document.getElementById('f-sal-best')?.value || '',
+  salWorst: document.getElementById('f-sal-worst')?.value || '',
+  edited: false
+};
 
   const inserted = await insertRoleToSupabase(role, roles.length);
   if (!inserted) return;

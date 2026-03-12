@@ -60,7 +60,6 @@
       <span class="toolbar-label">Data</span>
       <button class="tool-btn" onclick="exportCSV()">📄 Export CSV</button>
       <button class="tool-btn" onclick="clearSave()">🗑 Reset data</button>
-      <button class="tool-btn" onclick="signOut()" title="Sign out">⏻ Sign out</button>
       <span class="save-indicator" id="saveIndicator">● Initialising…</span>
       <span id="client-filter-chip" class="chip hidden"></span>
     </div>
@@ -307,38 +306,3 @@
   </div>
 
   <div class="tooltip" id="tip"></div>
-
-  <!-- AUTH OVERLAY -->
-  <div id="authOverlay" style="
-    position:fixed; inset:0; display:none; z-index:9999;
-    background:rgba(0,0,0,0.65); backdrop-filter:blur(6px);
-    align-items:center; justify-content:center;
-  ">
-    <div style="
-      width:420px; max-width:92vw;
-      background:var(--surface); border:1px solid var(--border2);
-      border-radius:12px; overflow:hidden;
-      box-shadow:0 20px 70px rgba(0,0,0,0.55);
-    ">
-      <div style="padding:16px 18px; background:var(--surface2); border-bottom:1px solid var(--border);">
-        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:800;">Sign in</div>
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px;">
-          Your pipeline is stored securely in Supabase (per user).
-        </div>
-      </div>
-      <div style="padding:16px 18px;">
-        <label class="fl">Email</label>
-        <input class="fi" id="authEmail" placeholder="you@company.com" style="margin-bottom:10px;" />
-        <button class="add-btn" style="margin-top:6px;" onclick="signInMagicLink()">✉ Send magic link</button>
-        <div style="height:10px;"></div>
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);line-height:1.6;">
-          Use the same email each time to load the same pipeline.
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- App logic -->
-  <script src="app.js"></script>
-</body>
-</html>
