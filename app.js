@@ -48,7 +48,31 @@ async function copyRole(id, e) {
   // Insert in UI directly after original
   const idx = roles.findIndex(r => r.id === id);
   roles.splice(idx + 1, 0, inserted);
+function setClientFilter(client) {
+  activeClientFilter = client || '';
+  function renderClientChip() {
+  const chip = document.getElementById('client-filter-chip');
+  if (!chip) return;
 
+  if (!activeClientFilter) {
+    chip.classList.add('hidden');
+    return;
+  }
+
+  chip.classList.remove('hidden');
+  chip.innerHTML = `
+    Client: ${esc(activeClientFilter)}
+    <span onclick="setClientFilter('')">✕</span>
+  `;
+}
+  renderAll();
+}
+
+function getFilteredRoles() {
+  return activeClientFilter
+    ? roles.filter(r => r.client === activeClientFilter)
+    : roles;
+}
   renderAll();
   await persistSortOrder();
 }
@@ -104,6 +128,7 @@ let clients = [];
 let dragSrc = null;
 let editingId = null;
 let currentTab = 'pipeline';
+let activeClientFilter = '';
 
 /* Default form dates */
 const fStartEl = document.getElementById('f-start');
@@ -318,7 +343,9 @@ function renderList() {
   }
 
   list.innerHTML = '';
-  roles.forEach((r, i) => {
+
+const viewRoles = getFilteredRoles();
+viewRoles.forEach((r, i) => {
     const col = getColor(i);
     const urg = getUrgency(r);
     const sm = STATUS_META[r.status] || STATUS_META.active;
@@ -439,15 +466,20 @@ if (dragListEl) dragListEl.addEventListener('dragover', (e) => e.preventDefault(
 =========================== */
 
 function renderSummary() {
+  const viewRoles = getFilteredRoles();   // ✅ PUT IT HERE (first line inside the function)
+
   let best = 0, worst = 0, active = 0, onhold = 0, filled = 0;
 
-  roles.forEach(r => {
+  viewRoles.forEach(r => {                // ✅ USE viewRoles here
     if (r.salBest) best += +r.salBest;
     if (r.salWorst) worst += +r.salWorst;
     if (r.status === 'active' || r.status === 'approved') active++;
     if (r.status === 'onhold') onhold++;
     if (r.status === 'filled') filled++;
   });
+
+  // rest of your renderSummary stays the same
+
 
   const cards = [
     { lbl:'Total Roles', val:roles.length, sub:'in pipeline', acc:'var(--accent)' },
@@ -491,12 +523,15 @@ function renderGantt() {
   const inner = document.getElementById('gantt-inner');
   if (!inner) return;
 
-  if (!roles.length) {
-    inner.innerHTML = '<div class="empty"><div class="empty-icon">📊</div><span>Add roles to see the Gantt</span></div>';
-    const gr = document.getElementById('gantt-range');
-    if (gr) gr.textContent = '—';
-    return;
-  }
+const viewRoles = getFilteredRoles();
+
+viewRoles.forEach(r => {
+  if (r.salBest) best += +r.salBest;
+  if (r.salWorst) worst += +r.salWorst;
+  if (r.status === 'active' || r.status === 'approved') active++;
+  if (r.status === 'onhold') onhold++;
+  if (r.status === 'filled') filled++;
+});
 
   const MONTH_W = 72, NAME_W = 200, STATUS_W = 110;
   const ganttStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
@@ -936,7 +971,73 @@ function renderDashboard() {
   const el = document.getElementById('dash-inner');
   if (!el) return;
 
-  if (!roles.length) {
+  // ---- Client rollup data ----
+const clientRollup = {};
+
+getFilteredRoles().forEach(r => {
+  const client = r.client || 'Unassigned';
+
+  if (!clientRollup[client]) {
+    clientRollup[client] = {
+      client,
+      count: 0,
+      best: 0,
+      worst: 0,
+      urgent: 0
+    };
+  }
+
+  clientRollup[client].count++;
+
+  if (r.salBest)  clientRollup[client].best  += +r.salBest;
+  if (r.salWorst) clientRollup[client].worst += +r.salWorst;
+
+  const urg = getUrgency(r);
+  if (urg === 'red' || urg === 'amber') {
+    clientRollup[client].urgent++;
+  }
+});
+
+// ---- Client rollup table rows ----
+const clientRows = Object.values(clientRollup)
+  .sort((a, b) => b.urgent - a.urgent)
+  .map(c => `
+    <tr onclick="setClientFilter('${c.client === 'Unassigned' ? '' : esc(c.client)}')"
+        style="cursor:pointer">
+      <td>${esc(c.client)}</td>
+      <td>${c.count}</td>
+      <td>${fmtMoney(c.best)}</td>
+      <td>${fmtMoney(c.worst)}</td>
+      <td style="color:${c.urgent ? 'var(--red)' : 'var(--muted)'}">
+        ${c.urgent}
+      </td>
+    </tr>
+  `)
+  .join('');
+
+  html += `
+  <div class="dash-panel">
+    <div class="dash-panel-hdr">Client Exposure</div>
+    <div class="dash-panel-body">
+      <table class="dash-table">
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th>Roles</th>
+            <th>Best (£)</th>
+            <th>Worst (£)</th>
+            <th>Urgent</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${clientRows || '<tr><td colspan="5">No data</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  </div>
+`;
+
+if (!viewRoles.length) {
     el.innerHTML = `<div class="dash-empty"><div style="font-size:36px;opacity:0.18">📊</div><span>Add roles on the Pipeline tab to see analytics</span></div>`;
     return;
   }
@@ -1061,6 +1162,10 @@ function renderClientOptions() {
 =========================== */
 
 function renderAll() {
+  rebuildClients();
+  renderClientOptions();
+  renderClientChip();
+
   renderList();
   renderSummary();
   renderGantt();

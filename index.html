@@ -62,6 +62,7 @@
       <button class="tool-btn" onclick="clearSave()">🗑 Reset data</button>
       <button class="tool-btn" onclick="signOut()" title="Sign out">⏻ Sign out</button>
       <span class="save-indicator" id="saveIndicator">● Initialising…</span>
+      <span id="client-filter-chip" class="chip hidden"></span>
     </div>
 
     <!-- ═══ PIPELINE VIEW ═══ -->
@@ -115,7 +116,7 @@
                     <option>Finance</option><option>HR</option><option>Data</option><option>Other</option>
                   </select>
                 </div>
-                
+
                 <div class="fg">
   <label class="fl">Client</label>
   <input class="fi" id="f-client" list="client-options" placeholder="Select or type a client..." />
