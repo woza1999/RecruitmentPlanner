@@ -497,23 +497,109 @@ select.fi option { background:var(--surface2); }
 .save-indicator.si-err { color:var(--red); border-color:rgba(168,48,48,0.35); background:rgba(168,48,48,0.08); }
 .save-indicator.si-warn { color:var(--amber); border-color:rgba(163,102,24,0.35); background:rgba(163,102,24,0.08); }
 
-/* Dark theme variables */
+/* =========================================================
+   DARK THEME — RegiFlow-style cinematic background
+========================================================= */
+
 [data-theme="dark"] {
-  --bg: #0e1117; --surface: #131720; --surface2: #181d28; --surface3: #1e2434;
-  --border: #252c3e; --border2: #2d3550;
-  --accent: #3a65d4; --green: #259e6f; --amber: #c4861f; --red: #c24040;
-  --purple: #6b5cc4; --sky: #2a8ab8;
-  --text: #e4ecf7; --text2: #8896b2; --muted: #4e6080; --drag-bg: #191e2d;
+  --bg: #070b14;
+  --surface: rgba(16,22,33,0.65);
+  --surface2: rgba(22,28,40,0.75);
+  --surface3: rgba(28,36,50,0.65);
+  --border: rgba(120,160,255,0.14);
+  --border2: rgba(120,160,255,0.22);
+
+  --accent: #3a65d4;
+  --green: #259e6f;
+  --amber: #c4861f;
+  --red: #c24040;
+  --purple: #6b5cc4;
+  --sky: #2a8ab8;
+
+  --text: #e4ecf7;
+  --text2: #8896b2;
+  --muted: #4e6080;
+  --drag-bg: #191e2d;
 }
-[data-theme="dark"] .card-footer { background:rgba(0,0,0,0.18); }
-[data-theme="dark"] .edit-btn { background:rgba(58,101,212,0.1); border-color:rgba(58,101,212,0.3); }
-[data-theme="dark"] .edit-btn:hover { background:rgba(58,101,212,0.2); }
-[data-theme="dark"] .delete-btn { background:rgba(194,64,64,0.08); border-color:rgba(194,64,64,0.2); }
-[data-theme="dark"] .delete-btn:hover { background:rgba(194,64,64,0.18); }
-[data-theme="dark"] .save-indicator.si-ok { border-color:rgba(37,158,111,0.3); background:rgba(37,158,111,0.07); }
-[data-theme="dark"] .save-indicator.si-busy { border-color:rgba(58,101,212,0.3); background:rgba(58,101,212,0.07); }
-[data-theme="dark"] .save-indicator.si-err { border-color:rgba(194,64,64,0.3); background:rgba(194,64,64,0.07); }
-[data-theme="dark"] .save-indicator.si-warn { border-color:rgba(196,134,31,0.3); background:rgba(196,134,31,0.07); }
+
+/* DARK MODE BACKGROUND */
+[data-theme="dark"] body {
+  background:
+    radial-gradient(1200px 800px at 18% 15%, rgba(58,101,212,0.35), transparent 55%),
+    radial-gradient(900px 650px at 85% 25%, rgba(26,109,148,0.20), transparent 60%),
+    radial-gradient(1100px 800px at 55% 85%, rgba(79,63,168,0.18), transparent 60%),
+    linear-gradient(180deg, #070b14, #0a1324);
+  color: var(--text);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Swoosh streaks */
+[data-theme="dark"] body::before {
+  content:"";
+  position: fixed;
+  inset: -25%;
+  pointer-events: none;
+  z-index: 0;
+
+  background:
+    linear-gradient(135deg,
+      transparent 42%,
+      rgba(58,101,212,0.0) 46%,
+      rgba(58,101,212,0.22) 50%,
+      rgba(58,101,212,0.0) 54%,
+      transparent 58%
+    ),
+    linear-gradient(135deg,
+      transparent 52%,
+      rgba(26,109,148,0.0) 56%,
+      rgba(26,109,148,0.18) 60%,
+      rgba(26,109,148,0.0) 64%,
+      transparent 68%
+    );
+  filter: blur(10px);
+  transform: rotate(-6deg);
+  opacity: 0.75;
+}
+
+/* Grain texture */
+[data-theme="dark"] body::after {
+  content:"";
+  position: fixed;
+  inset: 0;
+  pointer-events:none;
+  z-index: 0;
+
+  background-image: radial-gradient(rgba(255,255,255,0.10) 1px, transparent 1px);
+  background-size: 140px 140px;
+  opacity: 0.06;
+  mix-blend-mode: screen;
+}
+
+/* GLASS PANELS */
+[data-theme="dark"] .panel,
+[data-theme="dark"] .dash-panel,
+[data-theme="dark"] .sum-card,
+[data-theme="dark"] .hdr-stat,
+[data-theme="dark"] .role-card {
+  background: rgba(20,26,38,0.55) !important;
+  border: 1px solid rgba(120,160,255,0.14) !important;
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 14px 35px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* Card elevation */
+[data-theme="dark"] .role-card:hover {
+  border-color: rgba(120,160,255,0.22) !important;
+  box-shadow: 0 18px 55px rgba(0,0,0,0.55);
+}
+
+/* Card footer (dark) */
+[data-theme="dark"] .card-footer {
+  background: rgba(0,0,0,0.22);
+}
 
 /* Theme toggle */
 .theme-toggle {
