@@ -20,19 +20,11 @@
     })();
   </script>
 
-  <!-- Supabase JS (UMD) -->
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
-  <!-- Global loading bar -->
-  <div id="globalLoading" class="global-loading hidden">
-    <div class="global-loading__bar"></div>
-  </div>
-
-  <!-- Toast container -->
-  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
-
   <div class="wrap">
 
     <!-- HEADER -->
@@ -82,7 +74,7 @@
 
       <div class="layout">
 
-        <!-- LEFT -->
+        <!-- LEFT: PRIORITY LIST -->
         <div>
           <div class="panel">
             <div class="panel-header">
@@ -198,7 +190,7 @@
           </div>
         </div>
 
-        <!-- RIGHT -->
+        <!-- RIGHT: GANTT -->
         <div class="panel gantt-panel">
           <div class="panel-header">
             <span class="panel-title">Ramp-Up Gantt — Today → Future</span>
@@ -220,7 +212,7 @@
 
   </div>
 
-  <!-- CLIENT OPTIONS -->
+  <!-- CLIENT OPTIONS (shared) -->
   <datalist id="client-options"></datalist>
 
   <!-- EDIT DRAWER -->
