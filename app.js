@@ -179,6 +179,7 @@ function mapRoleToDb(r) {
   return {
     name: r.name,
     dept: r.dept,
+    client: r.client || null,
     priority: r.priority,
     status: r.status,
     start_date: r.start || null,
