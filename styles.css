@@ -1,4 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap');
+
 :root {
+--font-base: 'Open Sans', sans-serif;
+--font-ui: 'Open Sans', sans-serif;
+--font-mono: 'Open Sans', sans-serif;
+
   --bg: #f0f2f7;
   --surface: #ffffff;
   --surface2: #f5f7fb;
@@ -31,6 +37,9 @@ body:not([data-theme="dark"]) {
   color: var(--text);
   position: relative;
   overflow-x: hidden;
+}
+body {
+  font-family: var(--font-base);
 }
 
 body:not([data-theme="dark"])::before {
@@ -732,3 +741,10 @@ select.fi option { background:var(--surface2); }
 .dash-table tr:hover td { background:var(--surface2); }
 .dash-table .td-name { font-family:'Inter',sans-serif; font-size:12px; font-weight:600; color:var(--text); }
 .dash-table .td-urg { display:inline-flex; align-items:center; gap:5px; }
+/* === FORCE OPEN SANS EVERYWHERE === */
+
+*,
+*::before,
+*::after {
+  font-family: var(--font-ui) !important;
+}

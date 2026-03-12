@@ -348,10 +348,15 @@ function renderList() {
         </label>
 
         <div class="card-actions">
-          <button class="edit-btn" onclick="openDrawer(${r.id}, event)">✏ Edit</button>
-          <button class="delete-btn" onclick="deleteRole(${r.id}, event)" title="Remove role">✕</button>
-        </div>
-      </div>
+  <button class="edit-btn" onclick="openDrawer(${r.id}, event)">✏ Edit</button>
+
+  <button class="edit-btn" style="padding:6px 12px"
+          onclick="copyRole(${r.id}, event)" title="Duplicate role">
+    ⧉ Copy
+  </button>
+
+  <button class="delete-btn" onclick="deleteRole(${r.id}, event)" title="Remove role">✕</button>
+</div>
     `;
 
     // Drag events
@@ -607,6 +612,46 @@ function hideTip(){ const t=document.getElementById('tip'); if (t) t.style.displ
 =========================== */
 
 async function addRole() {
+  
+async function copyRole(id, e) {
+  if (e) e.stopPropagation();
+
+  const src = roles.find(r => r.id === id);
+  if (!src) return;
+
+  // Create a duplicated role object (no id)
+  const dup = {
+    name: `${src.name} (copy)`,
+    dept: src.dept,
+    priority: src.priority,
+    status: src.status,
+    start: src.start || '',
+    end: src.end || '',
+    confirmed: false,              // usually safer to reset
+    salBest: src.salBest ?? '',
+    salWorst: src.salWorst ?? '',
+    edited: true
+  };
+
+  // Insert into Supabase at the position right after the source
+  const insertAt = Math.min(roles.length, roles.findIndex(r => r.id === id) + 1);
+
+  // Shift local order so the new one appears under the source immediately
+  // (We'll persist sort order after insert)
+  setStatus?.('saving');
+
+  const inserted = await insertRoleToSupabase(dup, insertAt);
+  if (!inserted) return;
+
+  // Insert into local array
+  roles.splice(insertAt, 0, inserted);
+
+  // Persist sort_order for all items so ordering matches UI
+  await persistSortOrder();
+
+  renderAll();
+}
+
   const nameEl = document.getElementById('f-name');
   if (!nameEl) return;
 
