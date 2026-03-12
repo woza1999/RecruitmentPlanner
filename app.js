@@ -48,9 +48,13 @@ async function copyRole(id, e) {
   // Insert in UI directly after original
   const idx = roles.findIndex(r => r.id === id);
   roles.splice(idx + 1, 0, inserted);
-function setClientFilter(client) {
+  
+  function setClientFilter(client) {
   activeClientFilter = client || '';
-  function renderClientChip() {
+  renderAll();
+}
+
+function renderClientChip() {
   const chip = document.getElementById('client-filter-chip');
   if (!chip) return;
 
@@ -65,16 +69,13 @@ function setClientFilter(client) {
     <span onclick="setClientFilter('')">✕</span>
   `;
 }
-  renderAll();
-}
 
 function getFilteredRoles() {
   return activeClientFilter
     ? roles.filter(r => r.client === activeClientFilter)
     : roles;
 }
-  renderAll();
-  await persistSortOrder();
+
 }
 
 const { createClient } = window.supabase;
@@ -523,16 +524,6 @@ function renderGantt() {
   const inner = document.getElementById('gantt-inner');
   if (!inner) return;
 
-const viewRoles = getFilteredRoles();
-
-viewRoles.forEach(r => {
-  if (r.salBest) best += +r.salBest;
-  if (r.salWorst) worst += +r.salWorst;
-  if (r.status === 'active' || r.status === 'approved') active++;
-  if (r.status === 'onhold') onhold++;
-  if (r.status === 'filled') filled++;
-});
-
   const MONTH_W = 72, NAME_W = 200, STATUS_W = 110;
   const ganttStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
   const allEnds = roles.map(r => parseD(r.end)).filter(Boolean);
@@ -573,7 +564,9 @@ viewRoles.forEach(r => {
 
   html += `</div></div></div>`;
 
-  roles.forEach((r, i) => {
+const viewRoles = getFilteredRoles();
+
+viewRoles.forEach((r, i) => {
     const col = getColor(i);
     const sd = parseD(r.start), ed = parseD(r.end);
     const hasDates = !!(sd && ed);
