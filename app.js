@@ -18,7 +18,106 @@ if (!window.supabase) {
 }
 
 const { createClient } = window.supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ---------- UI HELPERS ----------
+const UI = {
+  loadingCount: 0,
+
+  setGlobalLoading(isLoading) {
+    const el = document.getElementById("globalLoading");
+    if (!el) return;
+
+    if (isLoading) {
+      UI.loadingCount++;
+      el.classList.remove("hidden");
+    } else {
+      UI.loadingCount = Math.max(0, UI.loadingCount - 1);
+      if (UI.loadingCount === 0) el.classList.add("hidden");
+    }
+  },
+
+  toast(type, title, message, ms = 3200) {
+    const container = document.getElementById("toastContainer");
+    if (!container) return;
+
+    const toast = document.createElement("div");
+    toast.className = `toast toast--${type}`;
+
+    toast.innerHTML = `
+      <div>
+        <p class="toast__title">${escapeHtml(title)}</p>
+        ${message ? `<p class="toast__msg">${escapeHtml(message)}</p>` : ""}
+      </div>
+      <button class="toast__close" aria-label="Close">×</button>
+    `;
+
+    toast.querySelector(".toast__close").onclick = () => toast.remove();
+    container.appendChild(toast);
+
+    if (ms > 0) setTimeout(() => toast.remove(), ms);
+  },
+
+  success(title, message) { UI.toast("success", title, message); },
+  error(title, message)   { UI.toast("error", title, message, 5000); },
+  info(title, message)    { UI.toast("info", title, message); },
+
+  setButtonBusy(btn, busy, labelBusy = "Saving...") {
+    if (!btn) return;
+    if (busy) {
+      btn.dataset._oldText = btn.textContent;
+      btn.textContent = labelBusy;
+      btn.disabled = true;
+      btn.classList.add("is-busy");
+    } else {
+      btn.textContent = btn.dataset._oldText || btn.textContent;
+      btn.disabled = false;
+      btn.classList.remove("is-busy");
+    }
+  }
+};
+
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+window.addEventListener("unhandledrejection", (event) => {
+  UI.error("Unexpected error", event.reason?.message || String(event.reason));
+});
+window.addEventListener("error", (event) => {
+  UI.error("Unexpected error", event.message || "Something went wrong");
+});
+// ---------- SUPABASE WRAPPER ----------
+async function sbCall(actionName, fn, { showSuccess = false, successMsg = "Done" } = {}) {
+  UI.setGlobalLoading(true);
+
+  try {
+    const result = await fn();
+
+    // Supabase typically returns { data, error }
+    if (result?.error) {
+      const msg = result.error.message || "Unknown error";
+      UI.error(`${actionName} failed`, msg);
+      throw result.error;
+    }
+
+    if (showSuccess) UI.success(actionName, successMsg);
+    return result?.data ?? result;
+
+  } catch (err) {
+    // Catch unexpected runtime errors too (not just supabase 'error')
+    const msg = err?.message || String(err);
+    UI.error(`${actionName} failed`, msg);
+    throw err;
+
+  } finally {
+    UI.setGlobalLoading(false);
+  }
+}
 
 /* ===========================
   2) UTILITIES / CONSTANTS
@@ -198,46 +297,51 @@ function mapRoleToDb(r) {
 async function loadRolesFromSupabase() {
   setStatus('loading');
 
-  const { data, error } = await sb
-    .from('roles')
-    .select('*')
-    .order('sort_order', { ascending: true })
-    .order('id', { ascending: true });
+  try {
+    const data = await sbCall("Load roles", () =>
+      supabase
+        .from('roles')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('id', { ascending: true })
+    );
 
-  if (error) {
-    console.error("Load failed:", error);
+    roles = (data || []).map(mapDbToRole);
+    setStatus('idle');
+    return true;
+
+  } catch (err) {
+    // sbCall already shows a toast with the error message
+    console.error("Load failed:", err);
     setStatus('error');
     return false;
   }
-
-  roles = (data || []).map(mapDbToRole);
-  setStatus('idle');
-  return true;
 }
 
-async function insertRoleToSupabase(role, sortOrder) {
+async function updateRoleInSupabase(id, patch) {
   setStatus('saving');
 
-  const payload = {
-    ...mapRoleToDb(role),
-    sort_order: sortOrder
-  };
+  try {
+    await sbCall("Update role", () =>
+      supabase
+        .from('roles')
+        .update(patch)
+        .eq('id', id),
+      { showSuccess: true, successMsg: "Saved" }
+    );
 
-  const { data, error } = await sb
-    .from('roles')
-    .insert(payload)
-    .select('*')
-    .single();
+    setStatus('saved');
+    return true;
 
-  if (error) {
-    console.error("Insert failed:", error);
+  } catch (err) {
+    console.error("Update failed:", err);
     setStatus('error');
-    return null;
+    return false;
   }
+}
 
   setStatus('saved');
   return mapDbToRole(data);
-}
 
 async function updateRoleInSupabase(id, patch) {
   setStatus('saving');
@@ -257,33 +361,33 @@ async function updateRoleInSupabase(id, patch) {
   return true;
 }
 
-async function deleteRoleFromSupabase(id) {
-  setStatus('saving');
-
-  const { error } = await sb
-    .from('roles')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    console.error("Delete failed:", error);
-    setStatus('error');
-    return false;
-  }
-
   setStatus('saved');
   return true;
-}
 
 async function persistSortOrder() {
   setStatus('saving');
 
-  const ops = roles.map((r, idx) =>
-    sb.from('roles').update({ sort_order: idx }).eq('id', r.id)
-  );
+ async function persistSortOrder() {
+  setStatus('saving');
 
-  const results = await Promise.all(ops);
-  const anyErr = results.find(x => x.error);
+  try {
+    await Promise.all(
+      roles.map((r, idx) =>
+        sbCall("Update sort order", () =>
+          supabase.from('roles').update({ sort_order: idx }).eq('id', r.id)
+        )
+      )
+    );
+
+    setStatus('saved');
+    return true;
+
+  } catch (err) {
+    console.error("Sort persist failed:", err);
+    setStatus('error');
+    return false;
+  }
+}
 
   if (anyErr) {
     console.error("Sort persist failed:", anyErr.error);
