@@ -359,6 +359,7 @@ function renderList() {
 
           <div class="card-tags">
             <span class="tag">📁 ${esc(r.dept)}</span>
+            ${r.client ? `<span class="tag">🏢 ${esc(r.client)}</span>` : ''}
             <span class="tag">📅 ${sl}</span>
             <span class="tag">→ ${el}</span>
             ${daysChip}
@@ -624,6 +625,7 @@ function showTip(_e, i) {
 
   tip.innerHTML = `
     <div class="tt-name">${esc(r.name)}</div>
+    ${r.client ? `<div class="tt-row"><span>🏢 ${esc(r.client)}</span></div>` : ''}
     <div class="tt-row"><span>📁 ${esc(r.dept)}</span><span>${PRIORITY_ICON[r.priority]} ${r.priority}</span></div>
     <div class="tt-row"><span>${sm.icon} ${sm.label}</span><span>${urgFull}</span></div>
     <div class="tt-row"><span>📅 ${r.start||'—'}</span><span>→ ${r.end||'—'}</span></div>
