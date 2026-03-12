@@ -13,32 +13,34 @@
   <!-- Styles -->
   <link rel="stylesheet" href="styles.css" />
 
+  <!-- Apply saved theme immediately -->
   <script>
-    // Apply saved theme immediately to avoid flash of wrong theme
     (function () {
       document.documentElement.dataset.theme = localStorage.getItem('rp-theme') || 'light';
     })();
   </script>
 
-  <!-- Supabase JS (UMD global `supabase`) -->
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
   <div class="wrap">
+
     <!-- HEADER -->
     <header>
       <div class="header-left">
         <div class="app-icon">📋</div>
         <div>
-          <div class="app-title">Recruitment<span> Planner</span></div>
+          <div class="app-title">Recruitment <span>Planner</span></div>
           <div class="app-sub">// priority · timeline · budget</div>
         </div>
       </div>
+
       <div class="header-right">
         <div id="hdr-stats" style="display:flex;gap:8px;align-items:center;"></div>
 
-        <div class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Switch theme">
+        <div class="theme-toggle" onclick="toggleTheme()" title="Switch theme">
           <span class="tt-opt" id="tt-light">☀ Light</span>
           <span class="tt-opt" id="tt-dark">🌙 Dark</span>
         </div>
@@ -64,14 +66,15 @@
       <span id="client-filter-chip" class="chip hidden"></span>
     </div>
 
-    <!-- ═══ PIPELINE VIEW ═══ -->
+    <!-- PIPELINE VIEW -->
     <div id="view-pipeline">
-      <!-- SUMMARY ROW -->
+
+      <!-- SUMMARY -->
       <div class="summary-row" id="summary-row"></div>
 
-      <!-- MAIN LAYOUT -->
       <div class="layout">
-        <!-- LEFT: Priority List -->
+
+        <!-- LEFT: PRIORITY LIST -->
         <div>
           <div class="panel">
             <div class="panel-header">
@@ -79,10 +82,10 @@
               <span class="badge" id="role-count">0 roles</span>
             </div>
 
-            <!-- Filter bar -->
-            <div style="padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;gap:6px;align-items:center;">
-              <input id="list-search" class="fi" style="padding:5px 9px;font-size:10px;height:28px;" placeholder="🔍 Search roles..." oninput="filterList()" />
-              <select id="list-filter-status" class="fi" style="padding:4px 6px;font-size:10px;height:28px;width:auto;" onchange="filterList()">
+            <!-- Filters -->
+            <div style="padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;gap:6px;">
+              <input id="list-search" class="fi" placeholder="🔍 Search roles..." oninput="filterList()" />
+              <select id="list-filter-status" class="fi" onchange="filterList()">
                 <option value="">All statuses</option>
                 <option value="active">Active</option>
                 <option value="approved">Approved</option>
@@ -93,6 +96,7 @@
               </select>
             </div>
 
+            <!-- List -->
             <div class="drag-list-wrap">
               <div class="drag-list" id="dragList"></div>
               <div class="drag-list-fade" id="listFade"></div>
@@ -103,24 +107,31 @@
             <div class="add-form">
               <div class="fg">
                 <label class="fl">Role Title</label>
-                <input class="fi" id="f-name" placeholder="e.g. Senior Backend Engineer" onkeydown="if(event.key==='Enter')addRole()" />
+                <input class="fi" id="f-name" placeholder="e.g. Senior Backend Engineer" />
               </div>
 
               <div class="fg2">
                 <div>
                   <label class="fl">Department</label>
                   <select class="fi" id="f-dept">
-                    <option>Engineering</option><option>Product</option><option>Design</option>
-                    <option>Sales</option><option>Marketing</option><option>Operations</option>
-                    <option>Finance</option><option>HR</option><option>Data</option><option>Other</option>
+                    <option>Engineering</option>
+                    <option>Product</option>
+                    <option>Design</option>
+                    <option>Sales</option>
+                    <option>Marketing</option>
+                    <option>Operations</option>
+                    <option>Finance</option>
+                    <option>HR</option>
+                    <option>Data</option>
+                    <option>Other</option>
                   </select>
                 </div>
 
-                <div class="fg">
-  <label class="fl">Client</label>
-  <input class="fi" id="f-client" list="client-options" placeholder="Select or type a client..." />
-  <datalist id="client-options"></datalist>
-</div>
+                <div>
+                  <label class="fl">Client</label>
+                  <input class="fi" id="f-client" list="client-options" placeholder="Select or type a client..." />
+                </div>
+
                 <div>
                   <label class="fl">Priority</label>
                   <select class="fi" id="f-priority">
@@ -156,7 +167,7 @@
                 </div>
               </div>
 
-              <label class="check-row" id="f-confirmed-row">
+              <label class="check-row">
                 <input type="checkbox" id="f-confirmed" />
                 <span class="checkmark"></span>
                 <span>Resource confirmed — lock bar to green</span>
@@ -166,11 +177,11 @@
               <div class="fg2">
                 <div>
                   <label class="fl">Best Case (£)</label>
-                  <input class="fi" id="f-sal-best" type="number" placeholder="e.g. 60,000" min="0" />
+                  <input class="fi" id="f-sal-best" type="number" min="0" />
                 </div>
                 <div>
                   <label class="fl">Worst Case (£)</label>
-                  <input class="fi" id="f-sal-worst" type="number" placeholder="e.g. 80,000" min="0" />
+                  <input class="fi" id="f-sal-worst" type="number" min="0" />
                 </div>
               </div>
 
@@ -179,7 +190,7 @@
           </div>
         </div>
 
-        <!-- RIGHT: Gantt -->
+        <!-- RIGHT: GANTT -->
         <div class="panel gantt-panel">
           <div class="panel-header">
             <span class="panel-title">Ramp-Up Gantt — Today → Future</span>
@@ -189,31 +200,26 @@
           <div class="gantt-scroll">
             <div id="gantt-inner"></div>
           </div>
-
-          <div class="gantt-legend">
-            <div class="leg-item"><div class="leg-sw" style="background:var(--green);opacity:.3"></div>Confirmed / 8+ wks away</div>
-            <div class="leg-item"><div class="leg-sw" style="background:var(--amber);opacity:.4"></div>4–8 weeks away</div>
-            <div class="leg-item"><div class="leg-sw" style="background:var(--red);opacity:.35"></div>&lt; 4 weeks — urgent</div>
-            <div class="leg-item"><div class="leg-sw" style="background:var(--amber);background-image:repeating-linear-gradient(-45deg,transparent,transparent 3px,rgba(0,0,0,.3) 3px,rgba(0,0,0,.3) 6px);opacity:.6"></div>On Hold</div>
-            <div class="leg-item"><div class="leg-sw" style="background:var(--green);height:3px;border-radius:2px"></div>Best-case sal.</div>
-            <div class="leg-item"><div class="leg-sw" style="background:var(--red);height:3px;border-radius:2px"></div>Worst-case sal.</div>
-            <div class="leg-item"><div style="width:2px;height:12px;background:var(--red);border-radius:1px"></div>Today</div>
-          </div>
         </div>
-      </div>
-    </div><!-- /view-pipeline -->
 
-    <!-- ═══ DASHBOARD VIEW ═══ -->
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
     <div id="view-dashboard" style="display:none">
       <div id="dash-inner"></div>
     </div>
-  </div><!-- /wrap -->
+
+  </div>
+
+  <!-- CLIENT OPTIONS (shared) -->
+  <datalist id="client-options"></datalist>
 
   <!-- EDIT DRAWER -->
   <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
   <div class="drawer" id="editDrawer">
     <div class="drawer-header">
-      <div class="drawer-header-left">
+      <div>
         <div class="drawer-eyebrow">Edit Role</div>
         <div class="drawer-title" id="drawer-title">Role Name</div>
       </div>
@@ -223,28 +229,31 @@
     <div class="drawer-body">
       <div class="fg">
         <label class="fl">Role Title</label>
-        <input class="fi" id="e-name" placeholder="Role title"
-          oninput="document.getElementById('drawer-title').textContent = this.value || 'Role Name'" />
+        <input class="fi" id="e-name" />
       </div>
+
       <div class="fg">
-  <label class="fl">Client</label>
-  <input
-    class="fi"
-    id="e-client"
-    list="client-options"
-    placeholder="Select or type client name"
-  />
-</div>
+        <label class="fl">Client</label>
+        <input class="fi" id="e-client" list="client-options" />
+      </div>
 
       <div class="fg2">
         <div>
           <label class="fl">Department</label>
           <select class="fi" id="e-dept">
-            <option>Engineering</option><option>Product</option><option>Design</option>
-            <option>Sales</option><option>Marketing</option><option>Operations</option>
-            <option>Finance</option><option>HR</option><option>Data</option><option>Other</option>
+            <option>Engineering</option>
+            <option>Product</option>
+            <option>Design</option>
+            <option>Sales</option>
+            <option>Marketing</option>
+            <option>Operations</option>
+            <option>Finance</option>
+            <option>HR</option>
+            <option>Data</option>
+            <option>Other</option>
           </select>
         </div>
+
         <div>
           <label class="fl">Priority</label>
           <select class="fi" id="e-priority">
@@ -259,9 +268,9 @@
       <div class="fg">
         <label class="fl">Hiring Status</label>
         <select class="fi" id="e-status">
-          <option value="active">Active — Hiring Now</option>
-          <option value="approved">Approved — Not Started</option>
-          <option value="pending">Pending Approval</option>
+          <option value="active">Active</option>
+          <option value="approved">Approved</option>
+          <option value="pending">Pending</option>
           <option value="onhold">On Hold</option>
           <option value="filled">Filled</option>
           <option value="cancelled">Cancelled</option>
@@ -283,18 +292,18 @@
       <label class="check-row">
         <input type="checkbox" id="e-confirmed" />
         <span class="checkmark"></span>
-        <span>Resource confirmed — lock bar to green</span>
+        <span>Resource confirmed</span>
       </label>
 
       <div class="form-section-hdr">Salary Range</div>
       <div class="fg2">
         <div>
           <label class="fl">Best Case (£)</label>
-          <input class="fi" id="e-sal-best" type="number" placeholder="e.g. 60,000" min="0" />
+          <input class="fi" id="e-sal-best" type="number" />
         </div>
         <div>
           <label class="fl">Worst Case (£)</label>
-          <input class="fi" id="e-sal-worst" type="number" placeholder="e.g. 80,000" min="0" />
+          <input class="fi" id="e-sal-worst" type="number" />
         </div>
       </div>
     </div>
@@ -306,3 +315,8 @@
   </div>
 
   <div class="tooltip" id="tip"></div>
+
+  <!-- App JS -->
+  <script src="app.js"></script>
+</body>
+</html>

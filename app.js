@@ -1,4 +1,3 @@
-
 /* =========================================================
   Recruitment Planner — Supabase-backed (NO AUTH / PUBLIC)
   - No login
@@ -18,66 +17,6 @@ if (!window.supabase) {
   console.error("Supabase library not loaded. Check your index.html <script src=...supabase-js...>");
 }
 
-/* ===========================
-  11) CRUD ACTIONS
-=========================== */
-async function copyRole(id, e) {
-  if (e) e.stopPropagation();
-
-  const original = roles.find(r => r.id === id);
-  if (!original) return;
-
-  // Duplicate data (new DB row)
-  const duplicate = {
-    name: original.name + ' (Copy)',
-    dept: original.dept,
-    priority: original.priority,
-    status: original.status,
-    start: original.start,
-    end: original.end,
-    confirmed: false,
-    salBest: original.salBest,
-    salWorst: original.salWorst,
-    edited: false
-  };
-
-  // Insert into Supabase
-  const inserted = await insertRoleToSupabase(duplicate, roles.length);
-  if (!inserted) return;
-
-  // Insert in UI directly after original
-  const idx = roles.findIndex(r => r.id === id);
-  roles.splice(idx + 1, 0, inserted);
-  
-  function setClientFilter(client) {
-  activeClientFilter = client || '';
-  renderAll();
-}
-
-function renderClientChip() {
-  const chip = document.getElementById('client-filter-chip');
-  if (!chip) return;
-
-  if (!activeClientFilter) {
-    chip.classList.add('hidden');
-    return;
-  }
-
-  chip.classList.remove('hidden');
-  chip.innerHTML = `
-    Client: ${esc(activeClientFilter)}
-    <span onclick="setClientFilter('')">✕</span>
-  `;
-}
-
-function getFilteredRoles() {
-  return activeClientFilter
-    ? roles.filter(r => r.client === activeClientFilter)
-    : roles;
-}
-
-}
-
 const { createClient } = window.supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -92,11 +31,13 @@ function fmtDate(d){ return d.toISOString().slice(0,10); }
 function parseD(s){ if(!s) return null; const d=new Date(s+'T00:00:00'); return isNaN(d)?null:d; }
 function daysBetween(a,b){ return Math.round((b-a)/86400000); }
 function addMonths(d,n){ const r=new Date(d); r.setMonth(r.getMonth()+n); return r; }
+
 function fmtMoney(v){
   if (v === null || v === undefined || v === '') return '—';
   return '£' + Number(v).toLocaleString('en-GB');
 }
 function fmtDL(d){ return MON[d.getMonth()]+' '+d.getDate()+'\''+String(d.getFullYear()).slice(2); }
+
 function esc(s){
   return String(s ?? '')
     .replace(/&/g,'&amp;')
@@ -123,6 +64,10 @@ const STATUS_META = {
 
 const URG_CLASS = { confirmed:'u-confirmed', green:'u-green', amber:'u-amber', red:'u-red', nodate:'u-nodate' };
 const URG_LABEL = { confirmed:'✓ Confirmed', green:'8+ wks', amber:'4–8 wks', red:'Under 4 wks', nodate:'No date' };
+
+/* ===========================
+  2.5) GLOBAL STATE
+=========================== */
 
 let roles = [];
 let clients = [];
@@ -160,7 +105,36 @@ function setStatus(key) {
 }
 
 /* ===========================
-  4) URGENCY + COLORS
+  4) FILTERING (CLIENT CHIP)
+=========================== */
+
+function setClientFilter(client) {
+  activeClientFilter = client || '';
+  renderAll();
+}
+
+function getFilteredRoles() {
+  return activeClientFilter
+    ? roles.filter(r => (r.client || '') === activeClientFilter)
+    : roles;
+}
+
+function renderClientChip() {
+  const chip = document.getElementById('client-filter-chip');
+  if (!chip) return;
+
+  if (!activeClientFilter) {
+    chip.classList.add('hidden');
+    chip.innerHTML = '';
+    return;
+  }
+
+  chip.classList.remove('hidden');
+  chip.innerHTML = `Client: ${esc(activeClientFilter)} <span onclick="setClientFilter('')">✕</span>`;
+}
+
+/* ===========================
+  5) URGENCY + COLORS
 =========================== */
 
 function getUrgency(r) {
@@ -180,7 +154,7 @@ function getURGColors() {
 }
 
 /* ===========================
-  5) SUPABASE DATA MAPPING
+  6) SUPABASE DATA MAPPING
 =========================== */
 
 function mapDbToRole(row) {
@@ -188,6 +162,7 @@ function mapDbToRole(row) {
     id: row.id,
     name: row.name,
     dept: row.dept,
+    client: row.client || '',
     priority: row.priority,
     status: row.status,
     start: row.start_date ? String(row.start_date) : '',
@@ -196,8 +171,7 @@ function mapDbToRole(row) {
     salBest: row.sal_best ?? '',
     salWorst: row.sal_worst ?? '',
     edited: !!row.edited,
-    sort_order: row.sort_order ?? 0,
-    client: row.client || '',
+    sort_order: row.sort_order ?? 0
   };
 }
 
@@ -218,7 +192,7 @@ function mapRoleToDb(r) {
 }
 
 /* ===========================
-  6) SUPABASE CRUD (PUBLIC)
+  7) SUPABASE CRUD (PUBLIC)
 =========================== */
 
 async function loadRolesFromSupabase() {
@@ -322,18 +296,71 @@ async function persistSortOrder() {
 }
 
 /* ===========================
-  7) RENDER LIST
+  8) CLIENT LIST (DATALIST)
+=========================== */
+
+function rebuildClients() {
+  clients = [...new Set(
+    roles
+      .map(r => (r.client || '').trim())
+      .filter(Boolean)
+  )].sort((a,b) => a.localeCompare(b));
+}
+
+function renderClientOptions() {
+  const dl = document.getElementById('client-options');
+  if (!dl) return;
+  dl.innerHTML = clients.map(c => `<option value="${esc(c)}"></option>`).join('');
+}
+
+/* ===========================
+  9) DUPLICATE ROLE (COPY BUTTON)
+=========================== */
+
+async function copyRole(id, e) {
+  if (e) e.stopPropagation();
+
+  const original = roles.find(r => r.id === id);
+  if (!original) return;
+
+  const duplicate = {
+    name: original.name + ' (Copy)',
+    dept: original.dept,
+    client: original.client || '',
+    priority: original.priority,
+    status: original.status,
+    start: original.start,
+    end: original.end,
+    confirmed: false,
+    salBest: original.salBest,
+    salWorst: original.salWorst,
+    edited: false
+  };
+
+  const inserted = await insertRoleToSupabase(duplicate, roles.length);
+  if (!inserted) return;
+
+  const idx = roles.findIndex(r => r.id === id);
+  roles.splice(idx + 1, 0, inserted);
+
+  renderAll();
+  await persistSortOrder();
+}
+
+/* ===========================
+  10) RENDER LIST
 =========================== */
 
 function renderList() {
   const list = document.getElementById('dragList');
   if (!list) return;
 
-  const count = roles.length;
-  const rc = document.getElementById('role-count');
-  if (rc) rc.textContent = count + ' role' + (count !== 1 ? 's' : '');
+  const viewRoles = getFilteredRoles();
 
-  if (!count) {
+  const rc = document.getElementById('role-count');
+  if (rc) rc.textContent = viewRoles.length + ' role' + (viewRoles.length !== 1 ? 's' : '');
+
+  if (!viewRoles.length) {
     list.innerHTML = `
       <div class="empty" style="min-height:200px;">
         <div class="empty-icon">📋</div>
@@ -345,8 +372,7 @@ function renderList() {
 
   list.innerHTML = '';
 
-const viewRoles = getFilteredRoles();
-viewRoles.forEach((r, i) => {
+  viewRoles.forEach((r, i) => {
     const col = getColor(i);
     const urg = getUrgency(r);
     const sm = STATUS_META[r.status] || STATUS_META.active;
@@ -415,16 +441,12 @@ viewRoles.forEach((r, i) => {
           <span class="check-text">${r.confirmed ? '✓ Resource confirmed' : 'Mark as confirmed'}</span>
         </label>
 
-<div class="card-actions">
-  <button class="edit-btn" onclick="openDrawer(${r.id},event)">✏ Edit</button>
-
-  <button class="edit-btn"
-          onclick="copyRole(${r.id}, event)">
-    📋 Copy
-  </button>
-
-  <button class="delete-btn" onclick="deleteRole(${r.id},event)">✕</button>
-</div>
+        <div class="card-actions">
+          <button class="edit-btn" onclick="openDrawer(${r.id},event)">✏ Edit</button>
+          <button class="edit-btn" onclick="copyRole(${r.id}, event)">📋 Copy</button>
+          <button class="delete-btn" onclick="deleteRole(${r.id},event)">✕</button>
+        </div>
+      </div>
     `;
 
     // Drag events
@@ -463,15 +485,15 @@ const dragListEl = document.getElementById('dragList');
 if (dragListEl) dragListEl.addEventListener('dragover', (e) => e.preventDefault());
 
 /* ===========================
-  8) SUMMARY
+  11) SUMMARY
 =========================== */
 
 function renderSummary() {
-  const viewRoles = getFilteredRoles();   // ✅ PUT IT HERE (first line inside the function)
+  const viewRoles = getFilteredRoles();
 
   let best = 0, worst = 0, active = 0, onhold = 0, filled = 0;
 
-  viewRoles.forEach(r => {                // ✅ USE viewRoles here
+  viewRoles.forEach(r => {
     if (r.salBest) best += +r.salBest;
     if (r.salWorst) worst += +r.salWorst;
     if (r.status === 'active' || r.status === 'approved') active++;
@@ -479,11 +501,8 @@ function renderSummary() {
     if (r.status === 'filled') filled++;
   });
 
-  // rest of your renderSummary stays the same
-
-
   const cards = [
-    { lbl:'Total Roles', val:roles.length, sub:'in pipeline', acc:'var(--accent)' },
+    { lbl:'Total Roles', val:viewRoles.length, sub:'in view', acc:'var(--accent)' },
     { lbl:'Active / Ready', val:active, sub:'hiring in progress', acc:'var(--green)' },
     { lbl:'On Hold', val:onhold, sub:'paused roles', acc:'var(--amber)' },
     { lbl:'Best-Case Budget', val:fmtMoney(best), sub:'combined annual', acc:'var(--green)' },
@@ -517,16 +536,26 @@ function renderSummary() {
 }
 
 /* ===========================
-  9) GANTT
+  12) GANTT
 =========================== */
 
 function renderGantt() {
   const inner = document.getElementById('gantt-inner');
   if (!inner) return;
 
+  const viewRoles = getFilteredRoles();
+
+  if (!viewRoles.length) {
+    inner.innerHTML = '<div class="empty"><div class="empty-icon">📊</div><span>Add roles to see the Gantt</span></div>';
+    const gr = document.getElementById('gantt-range');
+    if (gr) gr.textContent = '—';
+    return;
+  }
+
   const MONTH_W = 72, NAME_W = 200, STATUS_W = 110;
   const ganttStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
-  const allEnds = roles.map(r => parseD(r.end)).filter(Boolean);
+
+  const allEnds = viewRoles.map(r => parseD(r.end)).filter(Boolean);
   let ganttEnd = allEnds.length ? new Date(Math.max(...allEnds)) : addMonths(TODAY,6);
   ganttEnd = new Date(ganttEnd.getFullYear(), ganttEnd.getMonth()+2, 1);
 
@@ -564,9 +593,7 @@ function renderGantt() {
 
   html += `</div></div></div>`;
 
-const viewRoles = getFilteredRoles();
-
-viewRoles.forEach((r, i) => {
+  viewRoles.forEach((r, i) => {
     const col = getColor(i);
     const sd = parseD(r.start), ed = parseD(r.end);
     const hasDates = !!(sd && ed);
@@ -629,11 +656,13 @@ viewRoles.forEach((r, i) => {
 }
 
 /* ===========================
-  10) TOOLTIP
+  13) TOOLTIP
 =========================== */
 
 function showTip(_e, i) {
-  const r = roles[i]; if(!r) return;
+  const viewRoles = getFilteredRoles();
+  const r = viewRoles[i]; if(!r) return;
+
   const sd=parseD(r.start), ed=parseD(r.end);
 
   let dur='—';
@@ -677,7 +706,7 @@ document.addEventListener('mousemove', (e) => {
 function hideTip(){ const t=document.getElementById('tip'); if (t) t.style.display='none'; }
 
 /* ===========================
-  11) CRUD ACTIONS
+  14) CRUD ACTIONS (UI)
 =========================== */
 
 async function addRole() {
@@ -695,18 +724,17 @@ async function addRole() {
   }
 
   const role = {
-  name,
-  dept: document.getElementById('f-dept')?.value || 'Other',
-  client: document.getElementById('f-client')?.value.trim() || '',
-  priority: document.getElementById('f-priority')?.value || 'medium',
-  status: document.getElementById('f-status')?.value || 'active',
-  start,
-  end,
-  confirmed: !!document.getElementById('f-confirmed')?.checked,
-  salBest: document.getElementById('f-sal-best')?.value || '',
-  salWorst: document.getElementById('f-sal-worst')?.value || '',
-  edited: false
-};
+    name,
+    dept: document.getElementById('f-dept')?.value || 'Other',
+    client: document.getElementById('f-client')?.value.trim() || '',
+    priority: document.getElementById('f-priority')?.value || 'medium',
+    status: document.getElementById('f-status')?.value || 'active',
+    start, end,
+    confirmed: !!document.getElementById('f-confirmed')?.checked,
+    salBest: document.getElementById('f-sal-best')?.value || '',
+    salWorst: document.getElementById('f-sal-worst')?.value || '',
+    edited: false
+  };
 
   const inserted = await insertRoleToSupabase(role, roles.length);
   if (!inserted) return;
@@ -715,9 +743,10 @@ async function addRole() {
 
   // reset form
   nameEl.value='';
+  const fc = document.getElementById('f-client'); if (fc) fc.value='';
   const sbEl = document.getElementById('f-sal-best'); if (sbEl) sbEl.value='';
   const swEl = document.getElementById('f-sal-worst'); if (swEl) swEl.value='';
-  const fcEl = document.getElementById('f-confirmed'); if (fcEl) fcEl.checked=false;
+  const conf = document.getElementById('f-confirmed'); if (conf) conf.checked=false;
   if (fStartEl) fStartEl.value=fmtDate(TODAY);
   if (fEndEl) fEndEl.value=fmtDate(addMonths(TODAY,6));
 
@@ -746,7 +775,7 @@ async function toggleConfirmed(id, val) {
 }
 
 /* ===========================
-  12) EDIT DRAWER
+  15) EDIT DRAWER
 =========================== */
 
 function openDrawer(id, e) {
@@ -797,8 +826,8 @@ async function saveEdit() {
 
   r.name = name;
   r.dept = document.getElementById('e-dept').value;
-  r.priority = document.getElementById('e-priority').value;
   r.client = document.getElementById('e-client')?.value.trim() || '';
+  r.priority = document.getElementById('e-priority').value;
   r.status = document.getElementById('e-status').value;
   r.start = start;
   r.end = end;
@@ -819,7 +848,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ===========================
-  13) FILTER + SCROLL HINT
+  16) FILTER + SCROLL HINT
 =========================== */
 
 function filterList() {
@@ -862,19 +891,18 @@ function updateScrollHint() {
 if (dragListEl) dragListEl.addEventListener('scroll', updateScrollHint);
 
 /* ===========================
-  14) EXPORT + RESET
+  17) EXPORT + RESET
 =========================== */
 
 function exportCSV() {
-  const headers = ['Rank','Role','Department','Priority','Status','Start Date','End Date','Confirmed','Best Case (£)','Worst Case (£)','Urgency'];
-  const rows = roles.map((r, i) => {
+  const viewRoles = getFilteredRoles();
+  const headers = ['Rank','Role','Client','Department','Priority','Status','Start Date','End Date','Confirmed','Best Case (£)','Worst Case (£)','Urgency'];
+  const rows = viewRoles.map((r, i) => {
     const urg = URG_LABEL[getUrgency(r)];
     return [
-      i+1, `"${String(r.name).replace(/"/g,'""')}"`, r.dept, r.priority, r.status,
-      r.start||'', r.end||'',
-      r.confirmed ? 'Yes' : 'No',
-      r.salBest||'', r.salWorst||'',
-      urg
+      i+1, `"${String(r.name).replace(/"/g,'""')}"`, `"${String(r.client||'').replace(/"/g,'""')}"`,
+      r.dept, r.priority, r.status, r.start||'', r.end||'',
+      r.confirmed ? 'Yes' : 'No', r.salBest||'', r.salWorst||'', urg
     ].join(',');
   });
   const csv = [headers.join(','), ...rows].join('\n');
@@ -886,9 +914,9 @@ function exportCSV() {
 }
 
 const SEED_ROLES = () => ([
-  { name:'Senior Backend Engineer', dept:'Engineering', priority:'critical', status:'active',   start:fmtDate(addMonths(TODAY,0)), end:fmtDate(addMonths(TODAY,9)),  confirmed:true,  salBest:'70000', salWorst:'90000', edited:false },
-  { name:'Product Manager',        dept:'Product',    priority:'high',     status:'approved', start:fmtDate(addMonths(TODAY,0)), end:fmtDate(addMonths(TODAY,12)), confirmed:false, salBest:'65000', salWorst:'85000', edited:false },
-  { name:'UX Designer',            dept:'Design',     priority:'high',     status:'pending',  start:fmtDate(addMonths(TODAY,2)), end:fmtDate(addMonths(TODAY,10)), confirmed:false, salBest:'55000', salWorst:'70000', edited:false },
+  { name:'Senior Backend Engineer', dept:'Engineering', client:'', priority:'critical', status:'active',   start:fmtDate(addMonths(TODAY,0)), end:fmtDate(addMonths(TODAY,9)),  confirmed:true,  salBest:'70000', salWorst:'90000', edited:false },
+  { name:'Product Manager',        dept:'Product',    client:'', priority:'high',     status:'approved', start:fmtDate(addMonths(TODAY,0)), end:fmtDate(addMonths(TODAY,12)), confirmed:false, salBest:'65000', salWorst:'85000', edited:false },
+  { name:'UX Designer',            dept:'Design',     client:'', priority:'high',     status:'pending',  start:fmtDate(addMonths(TODAY,2)), end:fmtDate(addMonths(TODAY,10)), confirmed:false, salBest:'55000', salWorst:'70000', edited:false },
 ]);
 
 async function clearSave() {
@@ -896,7 +924,6 @@ async function clearSave() {
 
   setStatus('saving');
 
-  // WARNING: This deletes ALL records (public/shared app)
   const del = await sb.from('roles').delete().neq('id', 0);
   if (del.error) {
     console.error(del.error);
@@ -907,7 +934,6 @@ async function clearSave() {
   roles = [];
   setStatus('saved');
 
-  // Reseed demo roles
   const seed = SEED_ROLES();
   for (let i = 0; i < seed.length; i++) {
     const inserted = await insertRoleToSupabase(seed[i], i);
@@ -918,7 +944,7 @@ async function clearSave() {
 }
 
 /* ===========================
-  15) THEME TOGGLE + TABS
+  18) THEME TOGGLE + TABS
 =========================== */
 
 function toggleTheme() {
@@ -945,7 +971,7 @@ function switchTab(tab) {
 }
 
 /* ===========================
-  16) DASHBOARD (full)
+  19) DASHBOARD
 =========================== */
 
 function getDashColors() {
@@ -966,112 +992,56 @@ function renderDashboard() {
   const el = document.getElementById('dash-inner');
   if (!el) return;
 
-  // ---- Client rollup data ----
-const clientRollup = {};
-
-getFilteredRoles().forEach(r => {
-  const client = r.client || 'Unassigned';
-
-  if (!clientRollup[client]) {
-    clientRollup[client] = {
-      client,
-      count: 0,
-      best: 0,
-      worst: 0,
-      urgent: 0
-    };
-  }
-
-  clientRollup[client].count++;
-
-  if (r.salBest)  clientRollup[client].best  += +r.salBest;
-  if (r.salWorst) clientRollup[client].worst += +r.salWorst;
-
-  const urg = getUrgency(r);
-  if (urg === 'red' || urg === 'amber') {
-    clientRollup[client].urgent++;
-  }
-});
-
-// ---- Client rollup table rows ----
-const clientRows = Object.values(clientRollup)
-  .sort((a, b) => b.urgent - a.urgent)
-  .map(c => `
-    <tr onclick="setClientFilter('${c.client === 'Unassigned' ? '' : esc(c.client)}')"
-        style="cursor:pointer">
-      <td>${esc(c.client)}</td>
-      <td>${c.count}</td>
-      <td>${fmtMoney(c.best)}</td>
-      <td>${fmtMoney(c.worst)}</td>
-      <td style="color:${c.urgent ? 'var(--red)' : 'var(--muted)'}">
-        ${c.urgent}
-      </td>
-    </tr>
-  `)
-  .join('');
-
-  html += `
-  <div class="dash-panel">
-    <div class="dash-panel-hdr">Client Exposure</div>
-    <div class="dash-panel-body">
-      <table class="dash-table">
-        <thead>
-          <tr>
-            <th>Client</th>
-            <th>Roles</th>
-            <th>Best (£)</th>
-            <th>Worst (£)</th>
-            <th>Urgent</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${clientRows || '<tr><td colspan="5">No data</td></tr>'}
-        </tbody>
-      </table>
-    </div>
-  </div>
-`;
-
-if (!viewRoles.length) {
+  const viewRoles = getFilteredRoles();
+  if (!viewRoles.length) {
     el.innerHTML = `<div class="dash-empty"><div style="font-size:36px;opacity:0.18">📊</div><span>Add roles on the Pipeline tab to see analytics</span></div>`;
     return;
   }
 
   const C = getDashColors();
-  const total = roles.length;
+  const total = viewRoles.length;
 
-  const statusCounts = {};
-  const priorityCounts = {critical:0,high:0,medium:0,low:0};
-  const deptData = {};
-  let totalBest = 0, totalWorst = 0, confirmed = 0, totalDur = 0, durCount = 0;
-  const urgCounts = {confirmed:0,green:0,amber:0,red:0,nodate:0};
-
-  roles.forEach(r => {
-    statusCounts[r.status] = (statusCounts[r.status]||0) + 1;
-    if (priorityCounts[r.priority] !== undefined) priorityCounts[r.priority]++;
-
-    if (r.salBest) totalBest += +r.salBest;
-    if (r.salWorst) totalWorst += +r.salWorst;
-
-    const dept = r.dept || 'Other';
-    if (!deptData[dept]) deptData[dept] = {best:0,worst:0,count:0};
-    deptData[dept].best += +r.salBest||0;
-    deptData[dept].worst += +r.salWorst||0;
-    deptData[dept].count++;
-
-    if (r.confirmed) confirmed++;
-
-    const sd=parseD(r.start), ed=parseD(r.end);
-    if (sd && ed) { totalDur += daysBetween(sd,ed); durCount++; }
-    urgCounts[getUrgency(r)]++;
+  // Client rollup
+  const clientRollup = {};
+  viewRoles.forEach(r => {
+    const client = r.client || 'Unassigned';
+    if (!clientRollup[client]) clientRollup[client] = { client, count:0, best:0, worst:0, urgent:0 };
+    clientRollup[client].count++;
+    if (r.salBest)  clientRollup[client].best  += +r.salBest;
+    if (r.salWorst) clientRollup[client].worst += +r.salWorst;
+    const urg = getUrgency(r);
+    if (urg === 'red' || urg === 'amber') clientRollup[client].urgent++;
   });
 
-  const avgMonths = durCount ? Math.round(totalDur/durCount/30.4) : null;
+  const clientRows = Object.values(clientRollup)
+    .sort((a,b) => b.urgent - a.urgent)
+    .map(c => `
+      <tr onclick="setClientFilter('${c.client === 'Unassigned' ? '' : esc(c.client)}')" style="cursor:pointer">
+        <td>${esc(c.client)}</td>
+        <td>${c.count}</td>
+        <td>${fmtMoney(c.best)}</td>
+        <td>${fmtMoney(c.worst)}</td>
+        <td style="color:${c.urgent ? 'var(--red)' : 'var(--muted)'}">${c.urgent}</td>
+      </tr>
+    `).join('');
+
+  // Core totals
+  const statusCounts = {};
+  const priorityCounts = {critical:0,high:0,medium:0,low:0};
+  let totalBest = 0, totalWorst = 0, confirmed = 0;
+
+  viewRoles.forEach(r => {
+    statusCounts[r.status] = (statusCounts[r.status]||0) + 1;
+    if (priorityCounts[r.priority] !== undefined) priorityCounts[r.priority]++;
+    if (r.salBest) totalBest += +r.salBest;
+    if (r.salWorst) totalWorst += +r.salWorst;
+    if (r.confirmed) confirmed++;
+  });
+
   const fillRate = Math.round((statusCounts.filled||0)/total*100);
-  const confirmPct = Math.round(confirmed/total*100);
 
   const kpis = [
-    {lbl:'Total Roles', val:total, sub:'in pipeline', acc:'var(--accent)'},
+    {lbl:'Total Roles', val:total, sub:'in view', acc:'var(--accent)'},
     {lbl:'Active / Approved', val:(statusCounts.active||0)+(statusCounts.approved||0), sub:'ready to hire', acc:`${C.active}`},
     {lbl:'Filled', val:statusCounts.filled||0, sub:`${fillRate}% fill rate`, acc:`${C.filled}`},
     {lbl:'Best-Case Budget', val:fmtMoney(totalBest), sub:'combined annual', acc:`${C.low}`},
@@ -1085,75 +1055,37 @@ if (!viewRoles.length) {
       <div class="dash-kpi-sub">${k.sub}</div>
     </div>`).join('')}</div>`;
 
-  const STATUS_ORDER = ['active','approved','pending','onhold','filled','cancelled'];
-  const STATUS_LABELS = {active:'Active',approved:'Approved',pending:'Pending',onhold:'On Hold',filled:'Filled',cancelled:'Cancelled'};
-  const maxStat = Math.max(1, ...STATUS_ORDER.map(s => statusCounts[s]||0));
-
-  const statusBars = STATUS_ORDER.map(s => {
-    const cnt = statusCounts[s]||0;
-    const pct = Math.round(cnt/maxStat*100);
-    return `<div class="stat-bar-row">
-      <div class="stat-bar-label">${STATUS_LABELS[s]}</div>
-      <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${pct}%;background:${C[s]};"></div></div>
-      <div class="stat-bar-count">${cnt}</div>
-    </div>`;
-  }).join('');
-
-  const PRI_ORDER = ['critical','high','medium','low'];
-  const PRI_LABELS = {critical:'Critical',high:'High',medium:'Medium',low:'Low'};
-  let angle = 0, conicParts = '';
-  PRI_ORDER.forEach(p => {
-    const pct = priorityCounts[p]/total;
-    const end = angle + pct*360;
-    if (pct>0) conicParts += `${C[p]} ${angle.toFixed(1)}deg ${end.toFixed(1)}deg,`;
-    angle = end;
-  });
-  conicParts = conicParts.slice(0,-1) || `var(--border) 0deg 360deg`;
-
-  const priLegend = PRI_ORDER.map(p=>`<div class="donut-leg-row">
-    <div class="donut-leg-swatch" style="background:${C[p]}"></div>
-    <div class="donut-leg-lbl">${PRI_LABELS[p]}</div>
-    <div class="donut-leg-val">${priorityCounts[p]}</div>
-  </div>`).join('');
-
-  html += `<div class="dash-grid-2">
+  // Client Exposure table
+  html += `
     <div class="dash-panel">
-      <div class="dash-panel-hdr">Roles by Status</div>
-      <div class="dash-panel-body">${statusBars}</div>
-    </div>
-    <div class="dash-panel">
-      <div class="dash-panel-hdr">Priority Breakdown</div>
+      <div class="dash-panel-hdr">Client Exposure</div>
       <div class="dash-panel-body">
-        <div class="donut-wrap">
-          <div class="donut-chart" style="background:conic-gradient(${conicParts})">
-            <div class="donut-hole">
-              <div class="donut-hole-val">${total}</div>
-              <div class="donut-hole-lbl">Roles</div>
-            </div>
-          </div>
-          <div class="donut-legend">${priLegend}</div>
+        <table class="dash-table">
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th>Roles</th>
+              <th>Best (£)</th>
+              <th>Worst (£)</th>
+              <th>Urgent</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${clientRows || '<tr><td colspan="5">No data</td></tr>'}
+          </tbody>
+        </table>
+        <div style="font-size:10px;color:var(--muted);margin-top:8px;">
+          Tip: click a client row to filter the whole app.
         </div>
       </div>
     </div>
-  </div>`;
+  `;
 
   el.innerHTML = html;
 }
-function rebuildClients() {
-  clients = [...new Set(
-    roles
-      .map(r => (r.client || '').trim())
-      .filter(Boolean)
-  )].sort((a,b) => a.localeCompare(b));
-}
 
-function renderClientOptions() {
-  const dl = document.getElementById('client-options');
-  if (!dl) return;
-  dl.innerHTML = clients.map(c => `<option value="${esc(c)}"></option>`).join('');
-}
 /* ===========================
-  17) RENDER ALL + STARTUP
+  20) RENDER ALL + STARTUP
 =========================== */
 
 function renderAll() {
@@ -1175,7 +1107,7 @@ function renderAll() {
 })();
 
 /* ===========================
-  18) Expose functions for onclick=""
+  21) Expose functions for onclick=""
 =========================== */
 
 window.toggleTheme = toggleTheme;
@@ -1197,3 +1129,4 @@ window.showTip = showTip;
 window.hideTip = hideTip;
 
 window.copyRole = copyRole;
+window.setClientFilter = setClientFilter;
