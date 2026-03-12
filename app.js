@@ -1,22 +1,4 @@
-/* ===========================
-  18) Expose functions for onclick=""
-=========================== */
-``
-function copyRole(id, e) {
-  if (e) e.stopPropagation();
 
-  const role = roles.find(r => r.id === id);
-  if (!role) return;
-
-  navigator.clipboard.writeText(role.name)
-    .then(() => {
-      console.log('Copied:', role.name);
-    })
-    .catch(err => {
-      console.error('Clipboard failed:', err);
-      alert('Copy failed – clipboard blocked');
-    });
-}
 /* =========================================================
   Recruitment Planner — Supabase-backed (NO AUTH / PUBLIC)
   - No login
@@ -34,6 +16,41 @@ const SUPABASE_ANON_KEY = "sb_publishable_rT5fXqsS8Fz_spSQRU9epQ_DZ1_p7ZR"; // <
 // Supabase UMD global is `supabase`
 if (!window.supabase) {
   console.error("Supabase library not loaded. Check your index.html <script src=...supabase-js...>");
+}
+
+/* ===========================
+  11) CRUD ACTIONS
+=========================== */
+async function copyRole(id, e) {
+  if (e) e.stopPropagation();
+
+  const original = roles.find(r => r.id === id);
+  if (!original) return;
+
+  // Duplicate data (new DB row)
+  const duplicate = {
+    name: original.name + ' (Copy)',
+    dept: original.dept,
+    priority: original.priority,
+    status: original.status,
+    start: original.start,
+    end: original.end,
+    confirmed: false,
+    salBest: original.salBest,
+    salWorst: original.salWorst,
+    edited: false
+  };
+
+  // Insert into Supabase
+  const inserted = await insertRoleToSupabase(duplicate, roles.length);
+  if (!inserted) return;
+
+  // Insert in UI directly after original
+  const idx = roles.findIndex(r => r.id === id);
+  roles.splice(idx + 1, 0, inserted);
+
+  renderAll();
+  await persistSortOrder();
 }
 
 const { createClient } = window.supabase;
