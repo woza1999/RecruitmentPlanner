@@ -1,24 +1,29 @@
 /* =========================================================
-  Recruitment Planner — Supabase-backed (per-user private)
-  - Magic link sign-in
-  - RLS required on `roles` table
+  Recruitment Planner — Supabase-backed (NO AUTH / PUBLIC)
+  - No login
+  - Uses anon key directly
+  - Requires RLS policies that allow anon access
 ========================================================= */
 
 /* ===========================
   1) SUPABASE CONFIG  ✅ EDIT
 =========================== */
 
-// DO NOT commit real keys in public repos.
 const SUPABASE_URL = "https://yxlvfockhdevksurayma.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_rT5fXqsS8Fz_spSQRU9epQ_DZ1_p7ZR";
+const SUPABASE_ANON_KEY = "sb_publishable_rT5fXqsS8Fz_spSQRU9epQ_DZ1_p7ZR"; // <-- paste locally (do NOT commit if repo is public)
 
 // Supabase UMD global is `supabase`
+if (!window.supabase) {
+  console.error("Supabase library not loaded. Check your index.html <script src=...supabase-js...>");
+}
+
 const { createClient } = window.supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ===========================
   2) UTILITIES / CONSTANTS
 =========================== */
+
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
 
@@ -31,8 +36,6 @@ function fmtMoney(v){
   return '£' + Number(v).toLocaleString('en-GB');
 }
 function fmtDL(d){ return MON[d.getMonth()]+' '+d.getDate()+'\''+String(d.getFullYear()).slice(2); }
-
-// Proper HTML escape (your previous one was double-escaped)
 function esc(s){
   return String(s ?? '')
     .replace(/&/g,'&amp;')
@@ -58,7 +61,6 @@ const STATUS_META = {
 };
 
 const URG_CLASS = { confirmed:'u-confirmed', green:'u-green', amber:'u-amber', red:'u-red', nodate:'u-nodate' };
-// Avoid "<" inside text labels to reduce HTML edge cases
 const URG_LABEL = { confirmed:'✓ Confirmed', green:'8+ wks', amber:'4–8 wks', red:'Under 4 wks', nodate:'No date' };
 
 let roles = [];
@@ -66,21 +68,22 @@ let dragSrc = null;
 let editingId = null;
 let currentTab = 'pipeline';
 
-// Default form dates (only if elements exist)
+/* Default form dates */
 const fStartEl = document.getElementById('f-start');
 const fEndEl = document.getElementById('f-end');
 if (fStartEl) fStartEl.value = fmtDate(TODAY);
-if (fEndEl) fEndEl.value   = fmtDate(addMonths(TODAY, 6));
+if (fEndEl) fEndEl.value = fmtDate(addMonths(TODAY, 6));
 
 /* ===========================
   3) STATUS INDICATOR
 =========================== */
+
 const STATUS_CFG = {
   idle:    { text: '● Connected',              cls: 'si-ok' },
-  auth:    { text: '⚠ Sign in required',       cls: 'si-warn' },
   loading: { text: '⟳ Loading…',              cls: 'si-busy' },
   saving:  { text: '⟳ Saving…',               cls: 'si-busy' },
   saved:   { text: '✓ Saved',                 cls: 'si-ok' },
+  warn:    { text: '⚠ Check setup',           cls: 'si-warn' },
   error:   { text: '✕ Error — check console', cls: 'si-err' },
 };
 
@@ -90,64 +93,13 @@ function setStatus(key) {
   const cfg = STATUS_CFG[key] || STATUS_CFG.idle;
   el.textContent = cfg.text;
   el.className = 'save-indicator show ' + cfg.cls;
-  if (key === 'saved') setTimeout(() => setStatus('idle'), 1800);
+  if (key === 'saved') setTimeout(() => setStatus('idle'), 1500);
 }
 
 /* ===========================
-  4) AUTH (Magic Link)
+  4) URGENCY + COLORS
 =========================== */
-function showAuthOverlay(show) {
-  const ov = document.getElementById('authOverlay');
-  if (!ov) return;
-  ov.style.display = show ? 'flex' : 'none';
-}
 
-async function signInMagicLink() {
-  const email = (document.getElementById('authEmail')?.value || '').trim();
-  if (!email) return;
-
-  setStatus('auth');
-  const { error } = await sb.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.href.split('#')[0] }
-  });
-
-  if (error) {
-    console.error(error);
-    setStatus('error');
-    alert('Sign-in failed: ' + error.message);
-    return;
-  }
-  alert('Magic link sent. Check your email and click the link.');
-}
-
-async function signOut() {
-  await sb.auth.signOut();
-  roles = [];
-  renderAll();
-  setStatus('auth');
-  showAuthOverlay(true);
-}
-
-async function getUserId() {
-  const { data } = await sb.auth.getSession();
-  return data?.session?.user?.id || null;
-}
-
-sb.auth.onAuthStateChange(async (_event, session) => {
-  if (session?.user) {
-    showAuthOverlay(false);
-    await loadRolesFromSupabase();
-    renderAll();
-  } else {
-    setStatus('auth');
-    showAuthOverlay(true);
-  }
-});
-
-/* ===========================
-  5) URGENCY + COLORS
-=========================== */
 function getUrgency(r) {
   if (r.confirmed) return 'confirmed';
   const sd = parseD(r.start);
@@ -165,8 +117,9 @@ function getURGColors() {
 }
 
 /* ===========================
-  6) SUPABASE DATA MAPPING
+  5) SUPABASE DATA MAPPING
 =========================== */
+
 function mapDbToRole(row) {
   return {
     id: row.id,
@@ -180,6 +133,7 @@ function mapDbToRole(row) {
     salBest: row.sal_best ?? '',
     salWorst: row.sal_worst ?? '',
     edited: !!row.edited,
+    sort_order: row.sort_order ?? 0
   };
 }
 
@@ -198,15 +152,13 @@ function mapRoleToDb(r) {
   };
 }
 
-async function loadRolesFromSupabase() {
-  const uid = await getUserId();
-  if (!uid) {
-    setStatus('auth');
-    showAuthOverlay(true);
-    return false;
-  }
+/* ===========================
+  6) SUPABASE CRUD (PUBLIC)
+=========================== */
 
+async function loadRolesFromSupabase() {
   setStatus('loading');
+
   const { data, error } = await sb
     .from('roles')
     .select('*')
@@ -214,7 +166,7 @@ async function loadRolesFromSupabase() {
     .order('id', { ascending: true });
 
   if (error) {
-    console.error(error);
+    console.error("Load failed:", error);
     setStatus('error');
     return false;
   }
@@ -225,13 +177,9 @@ async function loadRolesFromSupabase() {
 }
 
 async function insertRoleToSupabase(role, sortOrder) {
-  const uid = await getUserId();
-  if (!uid) return null;
-
   setStatus('saving');
 
   const payload = {
-    user_id: uid,
     ...mapRoleToDb(role),
     sort_order: sortOrder
   };
@@ -243,7 +191,7 @@ async function insertRoleToSupabase(role, sortOrder) {
     .single();
 
   if (error) {
-    console.error(error);
+    console.error("Insert failed:", error);
     setStatus('error');
     return null;
   }
@@ -261,10 +209,11 @@ async function updateRoleInSupabase(id, patch) {
     .eq('id', id);
 
   if (error) {
-    console.error(error);
+    console.error("Update failed:", error);
     setStatus('error');
     return false;
   }
+
   setStatus('saved');
   return true;
 }
@@ -278,7 +227,7 @@ async function deleteRoleFromSupabase(id) {
     .eq('id', id);
 
   if (error) {
-    console.error(error);
+    console.error("Delete failed:", error);
     setStatus('error');
     return false;
   }
@@ -298,7 +247,7 @@ async function persistSortOrder() {
   const anyErr = results.find(x => x.error);
 
   if (anyErr) {
-    console.error(anyErr.error);
+    console.error("Sort persist failed:", anyErr.error);
     setStatus('error');
     return false;
   }
@@ -310,6 +259,7 @@ async function persistSortOrder() {
 /* ===========================
   7) RENDER LIST
 =========================== */
+
 function renderList() {
   const list = document.getElementById('dragList');
   if (!list) return;
@@ -442,6 +392,7 @@ if (dragListEl) dragListEl.addEventListener('dragover', (e) => e.preventDefault(
 /* ===========================
   8) SUMMARY
 =========================== */
+
 function renderSummary() {
   let best = 0, worst = 0, active = 0, onhold = 0, filled = 0;
 
@@ -490,6 +441,7 @@ function renderSummary() {
 /* ===========================
   9) GANTT
 =========================== */
+
 function renderGantt() {
   const inner = document.getElementById('gantt-inner');
   if (!inner) return;
@@ -523,7 +475,6 @@ function renderGantt() {
 
   let html = `<div style="min-width:${NAME_W+STATUS_W+timelineW}px;">`;
 
-  // Header
   html += `<div class="g-header-row">
     <div class="gantt-name-col"><div class="g-name-hdr">Role</div></div>
     <div class="g-status-col" style="display:flex;align-items:center;padding:0 10px;height:44px;">
@@ -542,7 +493,6 @@ function renderGantt() {
 
   html += `</div></div></div>`;
 
-  // Rows
   roles.forEach((r, i) => {
     const col = getColor(i);
     const sd = parseD(r.start), ed = parseD(r.end);
@@ -608,15 +558,13 @@ function renderGantt() {
 /* ===========================
   10) TOOLTIP
 =========================== */
+
 function showTip(_e, i) {
   const r = roles[i]; if(!r) return;
   const sd=parseD(r.start), ed=parseD(r.end);
 
   let dur='—';
-  if (sd && ed) {
-    const m=Math.round(daysBetween(sd,ed)/30.4);
-    dur=m+' month'+(m!==1?'s':'');
-  }
+  if (sd && ed) { const m=Math.round(daysBetween(sd,ed)/30.4); dur=m+' month'+(m!==1?'s':''); }
 
   const urg = getUrgency(r);
   const sm = STATUS_META[r.status] || STATUS_META.active;
@@ -652,15 +600,12 @@ document.addEventListener('mousemove', (e) => {
     t.style.top  = (e.clientY - 10) + 'px';
   }
 });
-
-function hideTip(){
-  const t = document.getElementById('tip');
-  if (t) t.style.display='none';
-}
+function hideTip(){ const t=document.getElementById('tip'); if (t) t.style.display='none'; }
 
 /* ===========================
   11) CRUD ACTIONS
 =========================== */
+
 async function addRole() {
   const nameEl = document.getElementById('f-name');
   if (!nameEl) return;
@@ -722,20 +667,12 @@ async function toggleConfirmed(id, val) {
 
   renderSummary();
   renderGantt();
-
-  const card = document.querySelector(`.role-card[data-id="${id}"]`);
-  if (card) {
-    const urg = getUrgency(r);
-    const urgPill = card.querySelectorAll('.pill')[2];
-    if (urgPill) { urgPill.className = `pill ${URG_CLASS[urg]}`; urgPill.textContent = URG_LABEL[urg]; }
-    const txt = card.querySelector('.check-text');
-    if (txt) txt.textContent = val ? '✓ Resource confirmed' : 'Mark as confirmed';
-  }
 }
 
 /* ===========================
   12) EDIT DRAWER
 =========================== */
+
 function openDrawer(id, e) {
   if (e) e.stopPropagation();
   const r = roles.find(x => x.id === id);
@@ -806,6 +743,7 @@ document.addEventListener('keydown', (e) => {
 /* ===========================
   13) FILTER + SCROLL HINT
 =========================== */
+
 function filterList() {
   const q = (document.getElementById('list-search')?.value || '').toLowerCase();
   const status = document.getElementById('list-filter-status')?.value || '';
@@ -848,6 +786,7 @@ if (dragListEl) dragListEl.addEventListener('scroll', updateScrollHint);
 /* ===========================
   14) EXPORT + RESET
 =========================== */
+
 function exportCSV() {
   const headers = ['Rank','Role','Department','Priority','Status','Start Date','End Date','Confirmed','Best Case (£)','Worst Case (£)','Urgency'];
   const rows = roles.map((r, i) => {
@@ -868,18 +807,21 @@ function exportCSV() {
   a.click(); URL.revokeObjectURL(url);
 }
 
-async function clearSave() {
-  if (!confirm('Clear all your saved roles and reset to demo roles?')) return;
+const SEED_ROLES = () => ([
+  { name:'Senior Backend Engineer', dept:'Engineering', priority:'critical', status:'active',   start:fmtDate(addMonths(TODAY,0)), end:fmtDate(addMonths(TODAY,9)),  confirmed:true,  salBest:'70000', salWorst:'90000', edited:false },
+  { name:'Product Manager',        dept:'Product',    priority:'high',     status:'approved', start:fmtDate(addMonths(TODAY,0)), end:fmtDate(addMonths(TODAY,12)), confirmed:false, salBest:'65000', salWorst:'85000', edited:false },
+  { name:'UX Designer',            dept:'Design',     priority:'high',     status:'pending',  start:fmtDate(addMonths(TODAY,2)), end:fmtDate(addMonths(TODAY,10)), confirmed:false, salBest:'55000', salWorst:'70000', edited:false },
+]);
 
-  const uid = await getUserId();
-  if (!uid) return;
+async function clearSave() {
+  if (!confirm('Clear ALL roles in the database and reset to demo roles?')) return;
 
   setStatus('saving');
 
-  // Delete all rows for this user (RLS permits)
-  const { error } = await sb.from('roles').delete().neq('id', 0);
-  if (error) {
-    console.error(error);
+  // WARNING: This deletes ALL records (public/shared app)
+  const del = await sb.from('roles').delete().neq('id', 0);
+  if (del.error) {
+    console.error(del.error);
     setStatus('error');
     return;
   }
@@ -898,8 +840,9 @@ async function clearSave() {
 }
 
 /* ===========================
-  15) THEME TOGGLE
+  15) THEME TOGGLE + TABS
 =========================== */
+
 function toggleTheme() {
   const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
   document.documentElement.dataset.theme = next;
@@ -910,27 +853,22 @@ function toggleTheme() {
 
 function updateThemeToggle() {
   const isDark = document.documentElement.dataset.theme === 'dark';
-  const l = document.getElementById('tt-light');
-  const d = document.getElementById('tt-dark');
-  if (l) l.classList.toggle('active', !isDark);
-  if (d) d.classList.toggle('active', isDark);
+  document.getElementById('tt-light')?.classList.toggle('active', !isDark);
+  document.getElementById('tt-dark')?.classList.toggle('active', isDark);
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('view-pipeline').style.display = tab === 'pipeline' ? '' : 'none';
+  document.getElementById('view-dashboard').style.display = tab === 'dashboard' ? '' : 'none';
+  document.getElementById('tab-pipeline')?.classList.toggle('active', tab === 'pipeline');
+  document.getElementById('tab-dashboard')?.classList.toggle('active', tab === 'dashboard');
+  if (tab === 'dashboard') renderDashboard();
 }
 
 /* ===========================
-  16) TAB NAV + DASHBOARD
+  16) DASHBOARD (full)
 =========================== */
-function switchTab(tab) {
-  currentTab = tab;
-  const vp = document.getElementById('view-pipeline');
-  const vd = document.getElementById('view-dashboard');
-  if (vp) vp.style.display = tab === 'pipeline' ? '' : 'none';
-  if (vd) vd.style.display = tab === 'dashboard' ? '' : 'none';
-
-  document.getElementById('tab-pipeline')?.classList.toggle('active', tab === 'pipeline');
-  document.getElementById('tab-dashboard')?.classList.toggle('active', tab === 'dashboard');
-
-  if (tab === 'dashboard') renderDashboard();
-}
 
 function getDashColors() {
   const d = document.documentElement.dataset.theme === 'dark';
@@ -946,22 +884,122 @@ function getDashColors() {
   };
 }
 
-// Your existing dashboard renderer was fine; leave it as-is if you already have it.
-// If you need me to re-drop the full dashboard code too, say "include dashboard".
 function renderDashboard() {
-  // Minimal placeholder to avoid crashes if you haven't pasted the full dashboard block yet.
   const el = document.getElementById('dash-inner');
   if (!el) return;
+
   if (!roles.length) {
     el.innerHTML = `<div class="dash-empty"><div style="font-size:36px;opacity:0.18">📊</div><span>Add roles on the Pipeline tab to see analytics</span></div>`;
     return;
   }
-  el.innerHTML = `<div class="dash-empty"><span>Dashboard renderer not pasted. Say: "include dashboard"</span></div>`;
+
+  const C = getDashColors();
+  const total = roles.length;
+
+  const statusCounts = {};
+  const priorityCounts = {critical:0,high:0,medium:0,low:0};
+  const deptData = {};
+  let totalBest = 0, totalWorst = 0, confirmed = 0, totalDur = 0, durCount = 0;
+  const urgCounts = {confirmed:0,green:0,amber:0,red:0,nodate:0};
+
+  roles.forEach(r => {
+    statusCounts[r.status] = (statusCounts[r.status]||0) + 1;
+    if (priorityCounts[r.priority] !== undefined) priorityCounts[r.priority]++;
+
+    if (r.salBest) totalBest += +r.salBest;
+    if (r.salWorst) totalWorst += +r.salWorst;
+
+    const dept = r.dept || 'Other';
+    if (!deptData[dept]) deptData[dept] = {best:0,worst:0,count:0};
+    deptData[dept].best += +r.salBest||0;
+    deptData[dept].worst += +r.salWorst||0;
+    deptData[dept].count++;
+
+    if (r.confirmed) confirmed++;
+
+    const sd=parseD(r.start), ed=parseD(r.end);
+    if (sd && ed) { totalDur += daysBetween(sd,ed); durCount++; }
+    urgCounts[getUrgency(r)]++;
+  });
+
+  const avgMonths = durCount ? Math.round(totalDur/durCount/30.4) : null;
+  const fillRate = Math.round((statusCounts.filled||0)/total*100);
+  const confirmPct = Math.round(confirmed/total*100);
+
+  const kpis = [
+    {lbl:'Total Roles', val:total, sub:'in pipeline', acc:'var(--accent)'},
+    {lbl:'Active / Approved', val:(statusCounts.active||0)+(statusCounts.approved||0), sub:'ready to hire', acc:`${C.active}`},
+    {lbl:'Filled', val:statusCounts.filled||0, sub:`${fillRate}% fill rate`, acc:`${C.filled}`},
+    {lbl:'Best-Case Budget', val:fmtMoney(totalBest), sub:'combined annual', acc:`${C.low}`},
+    {lbl:'Worst-Case Budget', val:fmtMoney(totalWorst), sub:'combined annual', acc:`${C.critical}`},
+  ];
+
+  let html = `<div class="dash-kpi-row">${kpis.map(k=>`
+    <div class="dash-kpi" style="--kpi-accent:${k.acc}">
+      <div class="dash-kpi-lbl">${k.lbl}</div>
+      <div class="dash-kpi-val">${k.val}</div>
+      <div class="dash-kpi-sub">${k.sub}</div>
+    </div>`).join('')}</div>`;
+
+  const STATUS_ORDER = ['active','approved','pending','onhold','filled','cancelled'];
+  const STATUS_LABELS = {active:'Active',approved:'Approved',pending:'Pending',onhold:'On Hold',filled:'Filled',cancelled:'Cancelled'};
+  const maxStat = Math.max(1, ...STATUS_ORDER.map(s => statusCounts[s]||0));
+
+  const statusBars = STATUS_ORDER.map(s => {
+    const cnt = statusCounts[s]||0;
+    const pct = Math.round(cnt/maxStat*100);
+    return `<div class="stat-bar-row">
+      <div class="stat-bar-label">${STATUS_LABELS[s]}</div>
+      <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${pct}%;background:${C[s]};"></div></div>
+      <div class="stat-bar-count">${cnt}</div>
+    </div>`;
+  }).join('');
+
+  const PRI_ORDER = ['critical','high','medium','low'];
+  const PRI_LABELS = {critical:'Critical',high:'High',medium:'Medium',low:'Low'};
+  let angle = 0, conicParts = '';
+  PRI_ORDER.forEach(p => {
+    const pct = priorityCounts[p]/total;
+    const end = angle + pct*360;
+    if (pct>0) conicParts += `${C[p]} ${angle.toFixed(1)}deg ${end.toFixed(1)}deg,`;
+    angle = end;
+  });
+  conicParts = conicParts.slice(0,-1) || `var(--border) 0deg 360deg`;
+
+  const priLegend = PRI_ORDER.map(p=>`<div class="donut-leg-row">
+    <div class="donut-leg-swatch" style="background:${C[p]}"></div>
+    <div class="donut-leg-lbl">${PRI_LABELS[p]}</div>
+    <div class="donut-leg-val">${priorityCounts[p]}</div>
+  </div>`).join('');
+
+  html += `<div class="dash-grid-2">
+    <div class="dash-panel">
+      <div class="dash-panel-hdr">Roles by Status</div>
+      <div class="dash-panel-body">${statusBars}</div>
+    </div>
+    <div class="dash-panel">
+      <div class="dash-panel-hdr">Priority Breakdown</div>
+      <div class="dash-panel-body">
+        <div class="donut-wrap">
+          <div class="donut-chart" style="background:conic-gradient(${conicParts})">
+            <div class="donut-hole">
+              <div class="donut-hole-val">${total}</div>
+              <div class="donut-hole-lbl">Roles</div>
+            </div>
+          </div>
+          <div class="donut-legend">${priLegend}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  el.innerHTML = html;
 }
 
 /* ===========================
-  17) RENDER ALL
+  17) RENDER ALL + STARTUP
 =========================== */
+
 function renderAll() {
   renderList();
   renderSummary();
@@ -970,43 +1008,30 @@ function renderAll() {
   updateThemeToggle();
 }
 
-/* ===========================
-  18) SEED ROLES + STARTUP
-=========================== */
-const SEED_ROLES = () => ([
-  { name:'Senior Backend Engineer', dept:'Engineering', priority:'critical', status:'active',   start:fmtDate(addMonths(TODAY,0)), end:fmtDate(addMonths(TODAY,9)),  confirmed:true,  salBest:'70000', salWorst:'90000', edited:false },
-  { name:'Product Manager',        dept:'Product',    priority:'high',     status:'approved', start:fmtDate(addMonths(TODAY,0)), end:fmtDate(addMonths(TODAY,12)), confirmed:false, salBest:'65000', salWorst:'85000', edited:false },
-  { name:'UX Designer',            dept:'Design',     priority:'high',     status:'pending',  start:fmtDate(addMonths(TODAY,2)), end:fmtDate(addMonths(TODAY,10)), confirmed:false, salBest:'55000', salWorst:'70000', edited:false },
-  { name:'Sales Lead',             dept:'Sales',      priority:'medium',   status:'onhold',   start:fmtDate(addMonths(TODAY,3)), end:fmtDate(addMonths(TODAY,11)), confirmed:false, salBest:'60000', salWorst:'80000', edited:false },
-  { name:'Data Analyst',           dept:'Data',       priority:'low',      status:'approved', start:fmtDate(addMonths(TODAY,1)), end:fmtDate(addMonths(TODAY,8)),  confirmed:false, salBest:'45000', salWorst:'60000', edited:false },
-  { name:'DevOps Engineer',        dept:'Engineering',priority:'high',     status:'pending',  start:fmtDate(addMonths(TODAY,1)), end:fmtDate(addMonths(TODAY,7)),  confirmed:false, salBest:'65000', salWorst:'80000', edited:false },
-  { name:'Marketing Manager',      dept:'Marketing',  priority:'medium',   status:'approved', start:fmtDate(addMonths(TODAY,4)), end:fmtDate(addMonths(TODAY,13)), confirmed:false, salBest:'55000', salWorst:'70000', edited:false },
-]);
-
 (async () => {
-  // Check session
-  const { data } = await sb.auth.getSession();
-  const signedIn = !!data?.session?.user;
-
-  if (!signedIn) {
-    setStatus('auth');
-    showAuthOverlay(true);
-    updateThemeToggle();
-    renderAll();
-    return;
-  }
-
-  showAuthOverlay(false);
-  const loaded = await loadRolesFromSupabase();
-
-  // If empty, seed once (for this user)
-  if (loaded && roles.length === 0) {
-    const seed = SEED_ROLES();
-    for (let i = 0; i < seed.length; i++) {
-      const inserted = await insertRoleToSupabase(seed[i], i);
-      if (inserted) roles.push(inserted);
-    }
-  }
-
+  const ok = await loadRolesFromSupabase();
+  if (!ok) setStatus('warn');
   renderAll();
 })();
+
+/* ===========================
+  18) Expose functions for onclick=""
+=========================== */
+
+window.toggleTheme = toggleTheme;
+window.switchTab = switchTab;
+window.exportCSV = exportCSV;
+window.clearSave = clearSave;
+
+window.addRole = addRole;
+window.deleteRole = deleteRole;
+window.toggleConfirmed = toggleConfirmed;
+
+window.openDrawer = openDrawer;
+window.closeDrawer = closeDrawer;
+window.saveEdit = saveEdit;
+
+window.filterList = filterList;
+
+window.showTip = showTip;
+window.hideTip = hideTip;
