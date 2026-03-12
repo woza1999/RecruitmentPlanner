@@ -1,8 +1,7 @@
 /* =========================================================
   Recruitment Planner — Supabase-backed (NO AUTH / PUBLIC)
   - No login
-  - Uses anon key directly (NOT recommended for public repos)
-  - Requires RLS policies that allow anon access
+  - Uses publishable/anon key directly
 ========================================================= */
 
 /* ===========================
@@ -10,24 +9,13 @@
 =========================== */
 
 const SUPABASE_URL = "https://yxlvfockhdevksurayma.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_rT5fXqsS8Fz_spSQRU9epQ_DZ1_p7ZR"; 
+const SUPABASE_ANON_KEY = "sb_publishable_rT5fXqsS8Fz_spSQRU9epQ_DZ1_p7ZR"; // NOTE: don't commit secrets if repo is public
 
-// Supabase UMD global is `supabase`
 if (!window.supabase || !window.supabase.createClient) {
   console.error("Supabase library not loaded. Check index.html has the supabase-js <script>.");
 }
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-/* ===========================
-  1.5) GLOBAL ERROR HANDLERS
-=========================== */
-window.addEventListener("unhandledrejection", (event) => {
-  UI?.error?.("Unexpected error", event.reason?.message || String(event.reason));
-});
-window.addEventListener("error", (event) => {
-  UI?.error?.("Unexpected error", event.message || "Something went wrong");
-});
 
 /* ===========================
   2) UI HELPERS (TOAST/LOADING)
@@ -71,22 +59,8 @@ const UI = {
   },
 
   success(title, message) { UI.toast("success", title, message); },
-  error(title, message)   { UI.toast("error", title, message, 5000); },
+  error(title, message)   { UI.toast("error", title, message, 5500); },
   info(title, message)    { UI.toast("info", title, message); },
-
-  setButtonBusy(btn, busy, labelBusy = "Saving...") {
-    if (!btn) return;
-    if (busy) {
-      btn.dataset._oldText = btn.textContent;
-      btn.textContent = labelBusy;
-      btn.disabled = true;
-      btn.classList.add("is-busy");
-    } else {
-      btn.textContent = btn.dataset._oldText || btn.textContent;
-      btn.disabled = false;
-      btn.classList.remove("is-busy");
-    }
-  }
 };
 
 function escapeHtml(str) {
@@ -97,9 +71,18 @@ function escapeHtml(str) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
-
-// Use one escape for HTML templates too (avoid `esc()` vs `escapeHtml()` confusion)
 const esc = escapeHtml;
+
+/* ===========================
+  2.5) GLOBAL ERROR HANDLERS
+=========================== */
+
+window.addEventListener("unhandledrejection", (event) => {
+  UI.error("Unexpected error", event.reason?.message || String(event.reason));
+});
+window.addEventListener("error", (event) => {
+  UI.error("Unexpected error", event.message || "Something went wrong");
+});
 
 /* ===========================
   3) SUPABASE WRAPPER
@@ -111,7 +94,6 @@ async function sbCall(actionName, fn, { showSuccess = false, successMsg = "Done"
   try {
     const result = await fn();
 
-    // Supabase returns { data, error } for most calls
     if (result?.error) {
       const msg = result.error.message || "Unknown error";
       UI.error(`${actionName} failed`, msg);
@@ -149,7 +131,6 @@ function fmtMoney(v){
 }
 function fmtDL(d){ return MON[d.getMonth()]+' '+d.getDate()+'\''+String(d.getFullYear()).slice(2); }
 
-// Colour tokens
 const PALETTE = ['#2952c4','#1a7a52','#a36618','#4f3fa8','#903f18','#1a6d94','#7030a0','#a83030'];
 const getColor = (i) => PALETTE[i % PALETTE.length];
 
@@ -318,10 +299,7 @@ async function loadRolesFromSupabase() {
 async function insertRoleToSupabase(role, sortOrder) {
   setStatus('saving');
 
-  const payload = {
-    ...mapRoleToDb(role),
-    sort_order: sortOrder
-  };
+  const payload = { ...mapRoleToDb(role), sort_order: sortOrder };
 
   try {
     const data = await sbCall("Create role", () =>
@@ -776,7 +754,7 @@ function showTip(_e, i) {
   const viewRoles = getFilteredRoles();
   const r = viewRoles[i]; if(!r) return;
 
-  const sd=parseD(r.start), ed=parseD(r.end);
+  const sd = parseD(r.start), ed = parseD(r.end);
 
   let dur='—';
   if (sd && ed) { const m=Math.round(daysBetween(sd,ed)/30.4); dur=m+' month'+(m!==1?'s':''); }
@@ -861,7 +839,6 @@ async function addRole() {
   const swEl = document.getElementById('f-sal-worst'); if (swEl) swEl.value='';
   const conf = document.getElementById('f-confirmed'); if (conf) conf.checked=false;
 
-  // default dates
   const fStartEl = document.getElementById('f-start');
   const fEndEl = document.getElementById('f-end');
   if (fStartEl) fStartEl.value = fmtDate(TODAY);
@@ -1124,7 +1101,6 @@ function renderDashboard() {
   const C = getDashColors();
   const total = viewRoles.length;
 
-  // Client rollup
   const clientRollup = {};
   viewRoles.forEach(r => {
     const client = r.client || 'Unassigned';
@@ -1148,7 +1124,6 @@ function renderDashboard() {
       </tr>
     `).join('');
 
-  // Core totals
   const statusCounts = {};
   let totalBest = 0, totalWorst = 0;
 
@@ -1178,7 +1153,6 @@ function renderDashboard() {
     `).join('')
   }</div>`;
 
-  // Client Exposure table
   html += `
     <div class="dash-panel">
       <div class="dash-panel-hdr">Client Exposure</div>
@@ -1224,7 +1198,7 @@ function renderAll() {
 }
 
 (async () => {
-  // Default form dates (only after DOM exists; script is at end of body)
+  // default form dates
   const fStartEl = document.getElementById('f-start');
   const fEndEl = document.getElementById('f-end');
   if (fStartEl) fStartEl.value = fmtDate(TODAY);
@@ -1238,6 +1212,7 @@ function renderAll() {
 /* ===========================
   24) Expose functions for onclick=""
 =========================== */
+
 window.toggleTheme = toggleTheme;
 window.switchTab = switchTab;
 window.exportCSV = exportCSV;
