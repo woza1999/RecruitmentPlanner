@@ -75,6 +75,7 @@ let dragSrc = null;
 let editingId = null;
 let currentTab = 'dashboard';
 let activeClientFilter = '';
+let hoveredRole = null;
 
 /* Default form dates */
 const fStartEl = document.getElementById('f-start');
@@ -392,6 +393,7 @@ function renderList() {
     card.className = 'role-card';
     card.draggable = true;
     card.dataset.id = r.id;
+    card.onmouseover = () => hoveredRole = r;
 
     card.innerHTML = `
       <div class="card-accent" style="background:${col}"></div>
@@ -415,8 +417,6 @@ function renderList() {
           <div class="card-tags">
             <span class="tag">📁 ${esc(r.dept)}</span>
             ${r.client ? `<span class="tag">🏢 ${esc(r.client)}</span>` : ''}
-            <span class="tag">📅 ${sl}</span>
-            <span class="tag">→ ${el}</span>
             ${daysChip}
           </div>
 
@@ -1020,6 +1020,7 @@ function updateThemeToggle() {
 
 function switchTab(tab) {
   currentTab = tab;
+  document.body.className = 'scenario-' + tab;
 
   // Hide all views
   document.getElementById('view-priority').style.display = 'none';
@@ -1249,10 +1250,55 @@ function renderDashboard() {
 }
 
 /* ===========================
+  19.5) EXECUTIVE SUMMARY
+=========================== */
+
+function renderExecSummary() {
+  const viewRoles = getFilteredRoles();
+
+  const totalRoles = viewRoles.length;
+
+  // Roles by quarter
+  const quarters = {};
+  viewRoles.forEach(r => {
+    const start = parseD(r.start);
+    if (start) {
+      const q = Math.floor(start.getMonth() / 3) + 1;
+      const year = start.getFullYear();
+      const key = `Q${q} ${year}`;
+      quarters[key] = (quarters[key] || 0) + 1;
+    }
+  });
+  const rolesByQuarter = Object.entries(quarters).map(([q, count]) => `${q}: ${count}`).join(', ') || 'None';
+
+  // High-risk roles: critical priority or red urgency
+  const highRisk = viewRoles.filter(r => r.priority === 'critical' || getUrgency(r) === 'red').length;
+
+  const html = `
+    <div class="exec-sum-card">
+      <div class="exec-sum-val">${totalRoles}</div>
+      <div class="exec-sum-lbl">Total Planned Roles</div>
+    </div>
+    <div class="exec-sum-card">
+      <div class="exec-sum-val">${rolesByQuarter}</div>
+      <div class="exec-sum-lbl">Roles by Quarter</div>
+    </div>
+    <div class="exec-sum-card">
+      <div class="exec-sum-val">${highRisk}</div>
+      <div class="exec-sum-lbl">High-Risk Roles</div>
+    </div>
+  `;
+
+  const el = document.getElementById('exec-summary');
+  if (el) el.innerHTML = html;
+}
+
+/* ===========================
   20) RENDER ALL + STARTUP
 =========================== */
 
 function renderAll() {
+  renderExecSummary();
   rebuildClients();
   renderClientOptions();
   renderClientChip();
@@ -1269,6 +1315,33 @@ function renderAll() {
   if (!ok) setStatus('warn');
   switchTab('dashboard');
 })();
+
+/* ===========================
+  21.5) KEYBOARD SHORTCUTS
+=========================== */
+
+document.addEventListener('keydown', (e) => {
+  // / to search
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    const searchEl = document.getElementById('list-search');
+    if (searchEl) searchEl.focus();
+  }
+  // C to copy role summary (if a role is hovered)
+  else if (e.key === 'c' && !e.ctrlKey && !e.metaKey) {
+    if (hoveredRole) {
+      const summary = `${hoveredRole.name} - ${hoveredRole.dept} - ${hoveredRole.status} - Start: ${hoveredRole.start} - End: ${hoveredRole.end}`;
+      navigator.clipboard.writeText(summary);
+    }
+  }
+  // S to switch scenario (tab)
+  else if (e.key === 's' && !e.ctrlKey && !e.metaKey) {
+    const tabs = ['dashboard', 'priority', 'gantt'];
+    const currentIndex = tabs.indexOf(currentTab);
+    const nextIndex = (currentIndex + 1) % tabs.length;
+    switchTab(tabs[nextIndex]);
+  }
+});
 
 /* ===========================
   21) Expose functions for onclick=""

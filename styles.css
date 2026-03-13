@@ -108,6 +108,40 @@ header {
 .hdr-stat-val { font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:800; line-height:1; }
 .hdr-stat-lbl { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-top:2px; }
 
+/* ── EXECUTIVE SUMMARY ── */
+.exec-summary-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.exec-sum-card {
+  text-align: center;
+  padding: 16px;
+  background: var(--surface2);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.exec-sum-val {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.exec-sum-lbl {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
 /* ── MAIN LAYOUT ── */
 .main-layout { display:flex; gap:16px; align-items:flex-start; }
 .sidebar { width:200px; flex-shrink:0; }
@@ -236,8 +270,8 @@ header {
 .card-badges { display:none; }
 
 .pill {
-  font-family:'IBM Plex Mono',monospace; font-size:9px; font-weight:600;
-  padding:3px 10px; border-radius:20px; text-transform:uppercase; letter-spacing:0.6px;
+  font-family:'IBM Plex Mono',monospace; font-size:7px; font-weight:600;
+  padding:2px 6px; border-radius:12px; text-transform:uppercase; letter-spacing:0.6px;
   white-space:nowrap;
 }
 .p-critical { background:rgba(168,48,48,0.1); color:var(--red); border:1px solid rgba(168,48,48,0.3); }
@@ -746,6 +780,17 @@ select.fi option { background:var(--surface2); }
   vertical-align:middle;
 }
 .dash-table tr:last-child td { border-bottom:none; }
+
+/* Scenario gradients */
+.scenario-dashboard body::before {
+  background: linear-gradient(135deg, rgba(41,82,196,0.05), rgba(26,122,82,0.05));
+}
+.scenario-priority body::before {
+  background: linear-gradient(135deg, rgba(163,102,24,0.05), rgba(41,82,196,0.05));
+}
+.scenario-gantt body::before {
+  background: linear-gradient(135deg, rgba(26,122,82,0.05), rgba(168,48,48,0.05));
+}
 .dash-table tr:hover td { background:var(--surface2); }
 .dash-table .td-name { font-family:'Inter',sans-serif; font-size:12px; font-weight:600; color:var(--text); }
 .dash-table .td-urg { display:inline-flex; align-items:center; gap:5px; }
