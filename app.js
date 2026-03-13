@@ -78,6 +78,9 @@ let activeClientFilter = '';
 let hoveredRole = null;
 let scenarios = [];
 let currentScenarioId = null;
+let baselineId = null;
+let rawRoles = [];
+let currentDeltas = [];
 
 /* Default form dates */
 const fStartEl = document.getElementById('f-start');
@@ -148,6 +151,27 @@ function switchScenario(id) {
   loadRolesAndDeltas().then(() => {
     renderAll();
   });
+}
+
+async function toggleExclude(roleId) {
+  const existing = currentDeltas.find(d => String(d.role_id) === roleId && d.operation === 'exclude');
+  if (existing) {
+    // delete
+    await sb.from('scenario_role_deltas').delete().eq('id', existing.id);
+    currentDeltas = currentDeltas.filter(d => d.id !== existing.id);
+  } else {
+    // upsert exclude
+    const { data } = await sb.from('scenario_role_deltas').upsert({
+      scenario_id: currentScenarioId,
+      role_id: roleId,
+      operation: 'exclude',
+      overrides: {}
+    }, { onConflict: 'scenario_id,role_id' }).select();
+    currentDeltas.push(data[0]);
+  }
+  // reload
+  await loadRolesAndDeltas();
+  renderAll();
 }
 
 /* ===========================
@@ -262,10 +286,10 @@ async function loadRolesAndDeltas() {
     return false;
   }
 
-  let rawRoles = (rolesData || []).map(mapDbToRole);
+  rawRoles = (rolesData || []).map(mapDbToRole);
 
   // Load deltas for currentScenarioId
-  let deltas = [];
+  currentDeltas = [];
   if (currentScenarioId) {
     const { data: deltasData, error: deltasError } = await sb
       .from('scenario_role_deltas')
@@ -275,12 +299,12 @@ async function loadRolesAndDeltas() {
     if (deltasError) {
       console.error("Load deltas failed:", deltasError);
     } else {
-      deltas = deltasData || [];
+      currentDeltas = deltasData || [];
     }
   }
 
   // Apply scenario
-  roles = applyScenario(rawRoles, deltas);
+  roles = applyScenario(rawRoles, currentDeltas);
 
   rebuildClients();
   renderClientOptions();
@@ -540,6 +564,13 @@ function renderList() {
           <button class="edit-btn" onclick="copyRole(${r.id}, event)">📋 Copy</button>
           <button class="delete-btn" onclick="deleteRole(${r.id},event)">✕</button>
         </div>
+        ${currentScenarioId !== baselineId ? `
+        <label class="check-label exclude-toggle" onclick="event.stopPropagation()">
+          <input type="checkbox" ${currentDeltas.some(d => String(d.role_id) === String(r.id) && d.operation === 'exclude') ? 'checked' : ''} onchange="toggleExclude('${r.id}')" />
+          <span class="checkmark"></span>
+          <span class="check-text">Exclude in scenario</span>
+        </label>
+        ` : ''}
       </div>
     `;
 
@@ -975,23 +1006,63 @@ async function saveEdit() {
     return;
   }
 
-  r.name = name;
-  r.dept = document.getElementById('e-dept').value;
-  r.client = document.getElementById('e-client')?.value.trim() || '';
-  r.priority = document.getElementById('e-priority').value;
-  r.status = document.getElementById('e-status').value;
-  r.start = start;
-  r.end = end;
-  r.confirmed = document.getElementById('e-confirmed').checked;
-  r.salBest = document.getElementById('e-sal-best').value;
-  r.salWorst = document.getElementById('e-sal-worst').value;
-  r.edited = true;
+  const newPriority = document.getElementById('e-priority').value;
 
-  const ok = await updateRoleInSupabase(r.id, mapRoleToDb(r));
-  if (!ok) return;
+  if (currentScenarioId === baselineId) {
+    // Baseline mode: update the role
+    r.name = name;
+    r.dept = document.getElementById('e-dept').value;
+    r.client = document.getElementById('e-client')?.value.trim() || '';
+    r.priority = newPriority;
+    r.status = document.getElementById('e-status').value;
+    r.start = start;
+    r.end = end;
+    r.confirmed = document.getElementById('e-confirmed').checked;
+    r.salBest = document.getElementById('e-sal-best').value;
+    r.salWorst = document.getElementById('e-sal-worst').value;
+    r.edited = true;
 
-  closeDrawer();
+    const ok = await updateRoleInSupabase(r.id, mapRoleToDb(r));
+    if (!ok) return;
+  } else {
+    // Scenario mode: only handle priority delta
+    const baselineRole = rawRoles.find(x => x.id === editingId);
+    if (!baselineRole) return;
+
+    const baselinePriority = baselineRole.priority;
+    let overrides = {};
+    if (newPriority !== baselinePriority) {
+      overrides.priority = newPriority;
+    }
+
+    if (Object.keys(overrides).length === 0) {
+      // delete if exists
+      const existing = currentDeltas.find(d => String(d.role_id) === String(editingId) && d.operation === 'modify');
+      if (existing) {
+        await sb.from('scenario_role_deltas').delete().eq('id', existing.id);
+        currentDeltas = currentDeltas.filter(d => d.id !== existing.id);
+      }
+    } else {
+      // upsert
+      const deltaData = {
+        scenario_id: currentScenarioId,
+        role_id: editingId,
+        operation: 'modify',
+        overrides: overrides
+      };
+      const { data } = await sb.from('scenario_role_deltas').upsert(deltaData, { onConflict: 'scenario_id,role_id' }).select();
+      const existingIndex = currentDeltas.findIndex(d => String(d.role_id) === String(editingId) && d.operation === 'modify');
+      if (existingIndex >= 0) {
+        currentDeltas[existingIndex] = data[0];
+      } else {
+        currentDeltas.push(data[0]);
+      }
+    }
+  }
+
+  await loadRolesAndDeltas();
   renderAll();
+  closeDrawer();
 }
 
 document.addEventListener('keydown', (e) => {
@@ -1400,6 +1471,7 @@ function renderAll() {
   // Set currentScenarioId to Baseline
   const baseline = scenarios.find(s => s.name === 'Baseline');
   if (baseline) {
+    baselineId = baseline.id;
     currentScenarioId = baseline.id;
   } else {
     console.warn('No Baseline scenario found');
@@ -1467,3 +1539,4 @@ window.hideTip = hideTip;
 window.copyRole = copyRole;
 window.setClientFilter = setClientFilter;
 window.switchScenario = switchScenario;
+window.toggleExclude = toggleExclude;
