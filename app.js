@@ -696,6 +696,13 @@ function showTip(_e, i) {
   tip.style.display = 'block';
 }
 
+function showTipText(_e, html) {
+  const tip = document.getElementById('tip');
+  if (!tip) return;
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+}
+
 document.addEventListener('mousemove', (e) => {
   const t=document.getElementById('tip');
   if (t && t.style.display === 'block') {
@@ -1040,7 +1047,7 @@ function renderDashboard() {
   const clientRows = Object.values(clientRollup)
     .sort((a,b) => b.urgent - a.urgent)
     .map(c => `
-      <tr onclick="setClientFilter('${c.client === 'Unassigned' ? '' : esc(c.client)}')" style="cursor:pointer" title="Click to filter by ${esc(c.client)}">
+      <tr onclick="setClientFilter('${c.client === 'Unassigned' ? '' : esc(c.client)}')" style="cursor:pointer" onmouseenter="showTipText(event,'Click to filter by ${esc(c.client)}. ${c.count} roles, ${c.urgent} urgent.')" onmouseleave="hideTip()">
         <td>${esc(c.client)}</td>
         <td>${c.count}</td>
         <td>${fmtMoney(c.best)}</td>
@@ -1079,7 +1086,7 @@ function renderDashboard() {
   ];
 
   let html = `<div class="dash-kpi-row">${kpis.map(k=>`
-    <div class="dash-kpi" title="${esc(k.hint)}" style="--kpi-accent:${k.acc}">
+    <div class="dash-kpi" onmouseenter="showTipText(event,'${esc(k.hint)}')" onmouseleave="hideTip()" style="--kpi-accent:${k.acc}">
       <div class="dash-kpi-lbl">${k.lbl}</div>
       <div class="dash-kpi-val">${k.val}</div>
       <div class="dash-kpi-sub">${k.sub}</div>
