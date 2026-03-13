@@ -1023,6 +1023,16 @@ function renderDashboard() {
     if (urg === 'red' || urg === 'amber') clientRollup[client].urgent++;
   });
 
+  // Department rollup
+  const deptRollup = {};
+  viewRoles.forEach(r => {
+    const dept = r.dept;
+    if (!deptRollup[dept]) deptRollup[dept] = { dept, count:0, best:0, worst:0 };
+    deptRollup[dept].count++;
+    if (r.salBest) deptRollup[dept].best += +r.salBest;
+    if (r.salWorst) deptRollup[dept].worst += +r.salWorst;
+  });
+
   const clientRows = Object.values(clientRollup)
     .sort((a,b) => b.urgent - a.urgent)
     .map(c => `
@@ -1046,6 +1056,12 @@ function renderDashboard() {
     if (r.salBest) totalBest += +r.salBest;
     if (r.salWorst) totalWorst += +r.salWorst;
     if (r.confirmed) confirmed++;
+  });
+
+  const urgencyCounts = { confirmed:0, green:0, amber:0, red:0, nodate:0 };
+  viewRoles.forEach(r => {
+    const urg = getUrgency(r);
+    urgencyCounts[urg]++;
   });
 
   const fillRate = Math.round((statusCounts.filled||0)/total*100);
@@ -1091,6 +1107,57 @@ function renderDashboard() {
     </div>
   `;
 
+  // Department and Priority breakdown
+  html += `
+    <div class="dash-grid-2">
+      <div class="dash-panel">
+        <div class="dash-panel-hdr">Department Breakdown</div>
+        <div class="dash-panel-body">
+          ${Object.values(deptRollup).map(d => `
+            <div class="stat-bar-row">
+              <div class="stat-bar-label">${esc(d.dept)}</div>
+              <div class="stat-bar-track">
+                <div class="stat-bar-fill" style="width:${(d.count/total*100)}%; background:${C.active}"></div>
+              </div>
+              <div class="stat-bar-count">${d.count}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="dash-panel">
+        <div class="dash-panel-hdr">Priority Breakdown</div>
+        <div class="dash-panel-body">
+          ${['critical','high','medium','low'].map(p => `
+            <div class="stat-bar-row">
+              <div class="stat-bar-label">${p}</div>
+              <div class="stat-bar-track">
+                <div class="stat-bar-fill" style="width:${(priorityCounts[p]/total*100)}%; background:${C[p]}"></div>
+              </div>
+              <div class="stat-bar-count">${priorityCounts[p]}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Urgency Overview
+  html += `
+    <div class="dash-panel">
+      <div class="dash-panel-hdr">Urgency Overview</div>
+      <div class="dash-panel-body">
+        <div class="urg-grid">
+          ${['confirmed','green','amber','red','nodate'].map(u => `
+            <div class="urg-box" style="--urg-color:${C[u]}; --urg-border:${C[u]}; --urg-bg:rgba(${C[u].slice(4,-1)},0.1)">
+              <div class="urg-box-val">${urgencyCounts[u]}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px;">${URG_LABEL[u]}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
   el.innerHTML = html;
 }
 
@@ -1103,7 +1170,7 @@ function renderAll() {
   renderClientOptions();
   renderClientChip();
 
-  renderSummary();
+  if (currentTab !== 'dashboard') renderSummary();
   if (currentTab === 'priority') renderList();
   if (currentTab === 'gantt') renderGantt();
   if (currentTab === 'dashboard') renderDashboard();
