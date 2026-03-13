@@ -1258,26 +1258,11 @@ function renderExecSummary() {
 
   const totalRoles = viewRoles.length;
 
-  // Roles by priority for stacked bar
-  const priorityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
-  viewRoles.forEach(r => {
-    priorityCounts[r.priority] = (priorityCounts[r.priority] || 0) + 1;
-  });
-  const totalPriorities = Object.values(priorityCounts).reduce((a, b) => a + b, 0);
-  const priorityBar = totalPriorities ? `
-    <div class="priority-bar">
-      <div class="pb-critical" style="width: ${(priorityCounts.critical / totalPriorities * 100)}%"></div>
-      <div class="pb-high" style="width: ${(priorityCounts.high / totalPriorities * 100)}%"></div>
-      <div class="pb-medium" style="width: ${(priorityCounts.medium / totalPriorities * 100)}%"></div>
-      <div class="pb-low" style="width: ${(priorityCounts.low / totalPriorities * 100)}%"></div>
-    </div>
-  ` : '';
+  // Critical roles count
+  const criticalRoles = viewRoles.filter(r => r.priority === 'critical').length;
 
   // Delivery risk count: roles with red urgency
   const deliveryRisk = viewRoles.filter(r => getUrgency(r) === 'red').length;
-
-  // Roles with dependencies: roles that have a client (assuming client means external dependency)
-  const withDependencies = viewRoles.filter(r => r.client).length;
 
   const html = `
     <div class="exec-sum-card">
@@ -1285,16 +1270,12 @@ function renderExecSummary() {
       <div class="exec-sum-lbl">Total Roles</div>
     </div>
     <div class="exec-sum-card">
-      <div class="exec-sum-val">${priorityBar}</div>
-      <div class="exec-sum-lbl">Roles by Priority</div>
+      <div class="exec-sum-val">${criticalRoles}</div>
+      <div class="exec-sum-lbl">Critical Roles</div>
     </div>
     <div class="exec-sum-card">
       <div class="exec-sum-val">${deliveryRisk}</div>
-      <div class="exec-sum-lbl">Delivery Risk Count</div>
-    </div>
-    <div class="exec-sum-card">
-      <div class="exec-sum-val">${withDependencies}</div>
-      <div class="exec-sum-lbl">Roles with Dependencies</div>
+      <div class="exec-sum-lbl">Delivery Risk</div>
     </div>
   `;
 

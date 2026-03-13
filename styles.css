@@ -141,18 +141,6 @@ header {
   letter-spacing: 1px;
   text-transform: uppercase;
 }
-.priority-bar {
-  display: flex;
-  height: 8px;
-  border-radius: 4px;
-  overflow: hidden;
-  margin: 0 auto;
-  width: 100px;
-}
-.pb-critical { background: var(--red); }
-.pb-high { background: var(--amber); }
-.pb-medium { background: var(--accent); }
-.pb-low { background: var(--green); }
 
 /* ── MAIN LAYOUT ── */
 .main-layout { display:flex; gap:16px; align-items:flex-start; }
@@ -233,6 +221,9 @@ header {
   background:var(--surface3);
   box-shadow:0 6px 28px rgba(0,0,0,0.12);
   transform:translateY(-1px);
+}
+.role-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 .role-card.dragging { opacity:0.3; transform:scale(0.97); cursor:grabbing; }
 .role-card.drag-target { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
