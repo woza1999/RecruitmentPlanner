@@ -73,7 +73,7 @@ let roles = [];
 let clients = [];
 let dragSrc = null;
 let editingId = null;
-let currentTab = 'pipeline';
+let currentTab = 'priority';
 let activeClientFilter = '';
 
 /* Default form dates */
@@ -963,11 +963,21 @@ function updateThemeToggle() {
 
 function switchTab(tab) {
   currentTab = tab;
-  document.getElementById('view-pipeline').style.display = tab === 'pipeline' ? '' : 'none';
-  document.getElementById('view-dashboard').style.display = tab === 'dashboard' ? '' : 'none';
-  document.getElementById('tab-pipeline')?.classList.toggle('active', tab === 'pipeline');
+
+  // Hide all views
+  document.getElementById('view-priority').style.display = 'none';
+  document.getElementById('view-gantt').style.display = 'none';
+  document.getElementById('view-dashboard').style.display = 'none';
+
+  // Show selected view
+  document.getElementById('view-' + tab).style.display = 'block';
+
+  // Update tab buttons
+  document.getElementById('tab-priority')?.classList.toggle('active', tab === 'priority');
+  document.getElementById('tab-gantt')?.classList.toggle('active', tab === 'gantt');
   document.getElementById('tab-dashboard')?.classList.toggle('active', tab === 'dashboard');
-  if (tab === 'dashboard') renderDashboard();
+
+  renderAll();
 }
 
 /* ===========================
@@ -1093,9 +1103,9 @@ function renderAll() {
   renderClientOptions();
   renderClientChip();
 
-  renderList();
   renderSummary();
-  renderGantt();
+  if (currentTab === 'priority') renderList();
+  if (currentTab === 'gantt') renderGantt();
   if (currentTab === 'dashboard') renderDashboard();
   updateThemeToggle();
 }
