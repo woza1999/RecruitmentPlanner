@@ -73,7 +73,7 @@ let roles = [];
 let clients = [];
 let dragSrc = null;
 let editingId = null;
-let currentTab = 'priority';
+let currentTab = 'dashboard';
 let activeClientFilter = '';
 
 /* Default form dates */
@@ -1142,6 +1142,32 @@ function renderDashboard() {
       <div class="dash-kpi-sub">${k.sub}</div>
     </div>`).join('')}</div>`;
 
+  const upcoming = viewRoles
+    .filter(r => parseD(r.start))
+    .sort((a,b) => parseD(a.start) - parseD(b.start))
+    .slice(0, 5);
+
+  html += `
+    <div class="dash-panel" style="margin-bottom:16px;">
+      <div class="dash-panel-hdr">Upcoming start dates</div>
+      <div class="dash-panel-body">
+        ${upcoming.length ? `
+          <table class="dash-table">
+            <tbody>
+              ${upcoming.map(r => `
+                <tr onmouseenter="showTip(event, ${viewRoles.indexOf(r)})" onmouseleave="hideTip()">
+                  <td class="td-name">${esc(r.name)}</td>
+                  <td>${r.start}</td>
+                  <td>${esc(r.client || '—')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : `<div style="color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;">No upcoming start dates set.</div>`}
+      </div>
+    </div>
+  `;
+
   // Client Exposure table
   html += `
     <div class="dash-panel">
@@ -1241,7 +1267,7 @@ function renderAll() {
 (async () => {
   const ok = await loadRolesFromSupabase();
   if (!ok) setStatus('warn');
-  renderAll();
+  switchTab('dashboard');
 })();
 
 /* ===========================
