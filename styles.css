@@ -141,6 +141,18 @@ header {
   letter-spacing: 1px;
   text-transform: uppercase;
 }
+.priority-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0 auto;
+  width: 100px;
+}
+.pb-critical { background: var(--red); }
+.pb-high { background: var(--amber); }
+.pb-medium { background: var(--accent); }
+.pb-low { background: var(--green); }
 
 /* ── MAIN LAYOUT ── */
 .main-layout { display:flex; gap:16px; align-items:flex-start; }

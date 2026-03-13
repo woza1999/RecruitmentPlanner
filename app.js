@@ -1258,34 +1258,43 @@ function renderExecSummary() {
 
   const totalRoles = viewRoles.length;
 
-  // Roles by quarter
-  const quarters = {};
+  // Roles by priority for stacked bar
+  const priorityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
   viewRoles.forEach(r => {
-    const start = parseD(r.start);
-    if (start) {
-      const q = Math.floor(start.getMonth() / 3) + 1;
-      const year = start.getFullYear();
-      const key = `Q${q} ${year}`;
-      quarters[key] = (quarters[key] || 0) + 1;
-    }
+    priorityCounts[r.priority] = (priorityCounts[r.priority] || 0) + 1;
   });
-  const rolesByQuarter = Object.entries(quarters).map(([q, count]) => `${q}: ${count}`).join(', ') || 'None';
+  const totalPriorities = Object.values(priorityCounts).reduce((a, b) => a + b, 0);
+  const priorityBar = totalPriorities ? `
+    <div class="priority-bar">
+      <div class="pb-critical" style="width: ${(priorityCounts.critical / totalPriorities * 100)}%"></div>
+      <div class="pb-high" style="width: ${(priorityCounts.high / totalPriorities * 100)}%"></div>
+      <div class="pb-medium" style="width: ${(priorityCounts.medium / totalPriorities * 100)}%"></div>
+      <div class="pb-low" style="width: ${(priorityCounts.low / totalPriorities * 100)}%"></div>
+    </div>
+  ` : '';
 
-  // High-risk roles: critical priority or red urgency
-  const highRisk = viewRoles.filter(r => r.priority === 'critical' || getUrgency(r) === 'red').length;
+  // Delivery risk count: roles with red urgency
+  const deliveryRisk = viewRoles.filter(r => getUrgency(r) === 'red').length;
+
+  // Roles with dependencies: roles that have a client (assuming client means external dependency)
+  const withDependencies = viewRoles.filter(r => r.client).length;
 
   const html = `
     <div class="exec-sum-card">
       <div class="exec-sum-val">${totalRoles}</div>
-      <div class="exec-sum-lbl">Total Planned Roles</div>
+      <div class="exec-sum-lbl">Total Roles</div>
     </div>
     <div class="exec-sum-card">
-      <div class="exec-sum-val">${rolesByQuarter}</div>
-      <div class="exec-sum-lbl">Roles by Quarter</div>
+      <div class="exec-sum-val">${priorityBar}</div>
+      <div class="exec-sum-lbl">Roles by Priority</div>
     </div>
     <div class="exec-sum-card">
-      <div class="exec-sum-val">${highRisk}</div>
-      <div class="exec-sum-lbl">High-Risk Roles</div>
+      <div class="exec-sum-val">${deliveryRisk}</div>
+      <div class="exec-sum-lbl">Delivery Risk Count</div>
+    </div>
+    <div class="exec-sum-card">
+      <div class="exec-sum-val">${withDependencies}</div>
+      <div class="exec-sum-lbl">Roles with Dependencies</div>
     </div>
   `;
 
