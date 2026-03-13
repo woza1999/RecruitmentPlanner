@@ -1125,7 +1125,7 @@ function renderDashboard() {
         <div class="dash-panel-hdr">Department Breakdown</div>
         <div class="dash-panel-body">
           ${Object.values(deptRollup).map(d => `
-            <div class="stat-bar-row">
+            <div class="stat-bar-row" onmouseenter="showTipText(event,'${esc(d.dept)}: ${d.count} role${d.count===1?'':'s'} (${Math.round(d.count/total*100)}%)')" onmouseleave="hideTip()">
               <div class="stat-bar-label">${esc(d.dept)}</div>
               <div class="stat-bar-track">
                 <div class="stat-bar-fill" style="width:${(d.count/total*100)}%; background:${C.active}"></div>
@@ -1139,7 +1139,7 @@ function renderDashboard() {
         <div class="dash-panel-hdr">Priority Breakdown</div>
         <div class="dash-panel-body">
           ${['critical','high','medium','low'].map(p => `
-            <div class="stat-bar-row">
+            <div class="stat-bar-row" onmouseenter="showTipText(event,'${p} priority: ${priorityCounts[p]} role${priorityCounts[p]===1?'':'s'} (${Math.round(priorityCounts[p]/total*100)}%)')" onmouseleave="hideTip()">
               <div class="stat-bar-label">${p}</div>
               <div class="stat-bar-track">
                 <div class="stat-bar-fill" style="width:${(priorityCounts[p]/total*100)}%; background:${C[p]}"></div>
@@ -1159,7 +1159,7 @@ function renderDashboard() {
       <div class="dash-panel-body">
         <div class="urg-grid">
           ${['confirmed','green','amber','red','nodate'].map(u => `
-            <div class="urg-box" style="--urg-color:${C[u]}; --urg-border:${C[u]}; --urg-bg:rgba(${C[u].slice(4,-1)},0.1)">
+            <div class="urg-box" style="--urg-color:${C[u]}; --urg-border:${C[u]}; --urg-bg:rgba(${C[u].slice(4,-1)},0.1)" onmouseenter="showTipText(event,'${URG_LABEL[u]}: ${urgencyCounts[u]} role${urgencyCounts[u]===1?'':'s'}')" onmouseleave="hideTip()">
               <div class="urg-box-val">${urgencyCounts[u]}</div>
               <div style="font-size:10px;color:var(--muted);margin-top:2px;">${URG_LABEL[u]}</div>
             </div>
