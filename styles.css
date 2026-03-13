@@ -113,6 +113,11 @@ header {
 .sidebar { width:200px; flex-shrink:0; }
 .main-area { flex:1; }
 
+/* ── MAIN LAYOUT ── */
+.main-layout { display:flex; gap:16px; align-items:flex-start; }
+.sidebar { width:200px; flex-shrink:0; }
+.main-area { flex:1; }
+
 /* ── PANEL ── */
 .panel {
   background:var(--surface); border:1px solid var(--border); border-radius:16px;
