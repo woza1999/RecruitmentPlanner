@@ -1271,7 +1271,7 @@ function renderExecSummary() {
     </div>
     <div class="exec-sum-card">
       <div class="exec-sum-val">${criticalRoles}</div>
-      <div class="exec-sum-lbl">Critical Roles</div>
+      <div class="exec-sum-lbl">Roles by Critical</div>
     </div>
     <div class="exec-sum-card">
       <div class="exec-sum-val">${deliveryRisk}</div>
