@@ -40,6 +40,8 @@
       <div class="header-right">
         <div id="hdr-stats" style="display:flex;gap:8px;align-items:center;"></div>
 
+        <select id="scenario-select" onchange="switchScenario(this.value)" style="margin-right:8px;"></select>
+
         <div class="theme-toggle" onclick="toggleTheme()" title="Switch theme">
           <span class="tt-opt" id="tt-light">☀ Light</span>
           <span class="tt-opt" id="tt-dark">🌙 Dark</span>

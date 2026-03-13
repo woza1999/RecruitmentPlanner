@@ -76,6 +76,8 @@ let editingId = null;
 let currentTab = 'dashboard';
 let activeClientFilter = '';
 let hoveredRole = null;
+let scenarios = [];
+let currentScenarioId = null;
 
 /* Default form dates */
 const fStartEl = document.getElementById('f-start');
@@ -132,6 +134,20 @@ function renderClientChip() {
 
   chip.classList.remove('hidden');
   chip.innerHTML = `Client: ${esc(activeClientFilter)} <span onclick="setClientFilter('')">✕</span>`;
+}
+
+function renderScenarioSelect() {
+  const sel = document.getElementById('scenario-select');
+  if (!sel) return;
+
+  sel.innerHTML = scenarios.map(s => `<option value="${s.id}" ${s.id === currentScenarioId ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
+}
+
+function switchScenario(id) {
+  currentScenarioId = id;
+  loadRolesAndDeltas().then(() => {
+    renderAll();
+  });
 }
 
 /* ===========================
@@ -214,6 +230,84 @@ async function loadRolesFromSupabase() {
   roles = (data || []).map(mapDbToRole);
   setStatus('idle');
   return true;
+}
+
+async function loadScenarios() {
+  const { data, error } = await sb
+    .from('scenarios')
+    .select('id, name, color');
+
+  if (error) {
+    console.error("Load scenarios failed:", error);
+    return false;
+  }
+
+  scenarios = data || [];
+  return true;
+}
+
+async function loadRolesAndDeltas() {
+  setStatus('loading');
+
+  // Load roles
+  const { data: rolesData, error: rolesError } = await sb
+    .from('roles')
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('id', { ascending: true });
+
+  if (rolesError) {
+    console.error("Load roles failed:", rolesError);
+    setStatus('error');
+    return false;
+  }
+
+  let rawRoles = (rolesData || []).map(mapDbToRole);
+
+  // Load deltas for currentScenarioId
+  let deltas = [];
+  if (currentScenarioId) {
+    const { data: deltasData, error: deltasError } = await sb
+      .from('scenario_role_deltas')
+      .select('*')
+      .eq('scenario_id', currentScenarioId);
+
+    if (deltasError) {
+      console.error("Load deltas failed:", deltasError);
+    } else {
+      deltas = deltasData || [];
+    }
+  }
+
+  // Apply scenario
+  roles = applyScenario(rawRoles, deltas);
+
+  rebuildClients();
+  renderClientOptions();
+
+  setStatus('idle');
+  return true;
+}
+
+function applyScenario(rawRoles, deltas) {
+  // Create a map of role_id (string) to delta
+  const deltaMap = new Map();
+  deltas.forEach(d => {
+    deltaMap.set(String(d.role_id), d);
+  });
+
+  // Filter and modify roles
+  return rawRoles.filter(r => {
+    const delta = deltaMap.get(String(r.id));
+    if (delta) {
+      if (delta.operation === 'exclude') return false;
+      if (delta.operation === 'modify') {
+        // Shallow merge overrides
+        Object.assign(r, delta.overrides);
+      }
+    }
+    return true;
+  });
 }
 
 async function insertRoleToSupabase(role, sortOrder) {
@@ -988,14 +1082,13 @@ async function clearSave() {
     return;
   }
 
-  roles = [];
-  setStatus('saved');
-
   const seed = SEED_ROLES();
   for (let i = 0; i < seed.length; i++) {
-    const inserted = await insertRoleToSupabase(seed[i], i);
-    if (inserted) roles.push(inserted);
+    await insertRoleToSupabase(seed[i], i);
   }
+
+  // Reload roles and apply scenario
+  await loadRolesAndDeltas();
 
   renderAll();
 }
@@ -1301,8 +1394,24 @@ function renderAll() {
 }
 
 (async () => {
-  const ok = await loadRolesFromSupabase();
+  // Load scenarios
+  await loadScenarios();
+
+  // Set currentScenarioId to Baseline
+  const baseline = scenarios.find(s => s.name === 'Baseline');
+  if (baseline) {
+    currentScenarioId = baseline.id;
+  } else {
+    console.warn('No Baseline scenario found');
+  }
+
+  // Render scenario select
+  renderScenarioSelect();
+
+  // Load roles and deltas
+  const ok = await loadRolesAndDeltas();
   if (!ok) setStatus('warn');
+
   switchTab('dashboard');
 })();
 
@@ -1357,3 +1466,4 @@ window.hideTip = hideTip;
 
 window.copyRole = copyRole;
 window.setClientFilter = setClientFilter;
+window.switchScenario = switchScenario;
