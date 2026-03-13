@@ -638,7 +638,7 @@ function renderGantt() {
       const urgTxt = { confirmed:'✓ Confirmed', green:'', amber:'', red:'!', nodate:'' }[urg];
       html += `<div class="g-bar ${extraBarClass}" data-idx="${i}"
         style="left:${barL}px;width:${barW}px;background:${finalColor}20;border:1px solid ${finalColor}55;"
-        onmouseenter="showTip(event,${i})" onmouseleave="hideTip()" onmousedown="startGanttResize(event, ${i})">
+        onmouseenter="showTip(event,${i})" onmouseleave="hideTip()">
         <span style="color:${finalColor};font-weight:600;">${urgTxt}</span>
       </div>`;
 
@@ -655,95 +655,6 @@ function renderGantt() {
   inner.innerHTML = html;
 }
 
-function startGanttResize(e, index) {
-  e.preventDefault();
-  e.stopPropagation();
-
-  const viewRoles = getFilteredRoles();
-  const r = viewRoles[index];
-  if (!r) return;
-
-  const sd = parseD(r.start);
-  const ed = parseD(r.end);
-  if (!sd || !ed) return;
-
-  // Recompute timeline mapping (same as renderGantt)
-  const ganttStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
-  const allEnds = viewRoles.map(r => parseD(r.end)).filter(Boolean);
-  let ganttEnd = allEnds.length ? new Date(Math.max(...allEnds)) : addMonths(TODAY, 6);
-  ganttEnd = new Date(ganttEnd.getFullYear(), ganttEnd.getMonth() + 2, 1);
-
-  const totalDays = daysBetween(ganttStart, ganttEnd) + 31;
-  const months = [];
-  let cur = new Date(ganttStart);
-  while (cur <= ganttEnd) { months.push(new Date(cur)); cur.setMonth(cur.getMonth() + 1); }
-  while (months.length < 8) { const l = new Date(months[months.length-1]); l.setMonth(l.getMonth()+1); months.push(l); }
-
-  const timelineW = months.length * 72;
-  const dateFromX = (x) => {
-    const days = Math.round((x / timelineW) * totalDays);
-    const d = new Date(ganttStart.getTime() + days * 86400000);
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  };
-
-  const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
-
-  const bar = e.currentTarget;
-  const barRect = bar.getBoundingClientRect();
-  const edgeThreshold = 10;
-  const resizeSide = (e.clientX - barRect.left < edgeThreshold) ? 'left'
-                   : (barRect.right - e.clientX < edgeThreshold) ? 'right'
-                   : null;
-  if (!resizeSide) return;
-
-  const track = bar.parentElement;
-  const trackRect = track.getBoundingClientRect();
-
-  const onMove = (moveEvent) => {
-    const trackRectNow = track.getBoundingClientRect();
-    const relX = clamp(moveEvent.clientX - trackRectNow.left, 0, timelineW);
-    const newDate = dateFromX(relX);
-    const newIso = fmtDate(newDate);
-
-    if (resizeSide === 'left') {
-      if (parseD(newIso) >= parseD(r.end)) return;
-      r.start = newIso;
-    } else {
-      if (parseD(newIso) <= parseD(r.start)) return;
-      r.end = newIso;
-    }
-
-    // Update visual feedback for the active bar without re-rendering everything
-    const newLeft = Math.max(0, Math.round((daysBetween(ganttStart, parseD(r.start)) / totalDays) * timelineW));
-    const newWidth = Math.max(6, Math.round((daysBetween(ganttStart, parseD(r.end)) / totalDays) * timelineW) - newLeft);
-    bar.style.left = `${newLeft}px`;
-    bar.style.width = `${newWidth}px`;
-
-    const sbv = +r.salBest || 0, swv = +r.salWorst || 0, mx = Math.max(sbv, swv, 1);
-    const bestW = Math.round((sbv/mx)*newWidth);
-    const worstW = Math.round((swv/mx)*newWidth);
-    const area = bar.parentElement;
-    const bestEl = area.querySelector('.g-sal-best');
-    const worstEl = area.querySelector('.g-sal-worst');
-    if (bestEl) { bestEl.style.left = `${newLeft}px`; bestEl.style.width = `${bestW}px`; }
-    if (worstEl) { worstEl.style.left = `${newLeft}px`; worstEl.style.width = `${worstW}px`; }
-  };
-
-  const onUp = async () => {
-    document.removeEventListener('mousemove', onMove);
-    document.removeEventListener('mouseup', onUp);
-
-    await updateRoleInSupabase(r.id, { start: r.start, end: r.end });
-    renderAll();
-  };
-
-  document.addEventListener('mousemove', onMove);
-  document.addEventListener('mouseup', onUp);
-}
-
-/* ===========================
-  13) TOOLTIP
-=========================== */
 
 function showTip(_e, i) {
   const viewRoles = getFilteredRoles();
