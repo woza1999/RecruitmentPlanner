@@ -47,168 +47,177 @@
       </div>
     </header>
 
-    <!-- TAB NAV -->
-    <div class="tab-nav">
-      <button class="tab-btn active" id="tab-pipeline" onclick="switchTab('pipeline')">
-        <span class="tab-dot"></span>Pipeline
-      </button>
-      <button class="tab-btn" id="tab-dashboard" onclick="switchTab('dashboard')">
-        <span class="tab-dot"></span>Dashboard
-      </button>
+  <!-- MAIN LAYOUT -->
+  <div class="main-layout">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <!-- TAB NAV -->
+      <div class="tab-nav">
+        <button class="tab-btn active" id="tab-pipeline" onclick="switchTab('pipeline')">
+          <span class="tab-dot"></span>Pipeline
+        </button>
+        <button class="tab-btn" id="tab-dashboard" onclick="switchTab('dashboard')">
+          <span class="tab-dot"></span>Dashboard
+        </button>
+      </div>
     </div>
 
-    <!-- TOOLBAR -->
-    <div class="toolbar">
-      <span class="toolbar-label">Data</span>
-      <button class="tool-btn" onclick="exportCSV()">📄 Export CSV</button>
-      <button class="tool-btn" onclick="clearSave()">🗑 Reset data</button>
-      <span class="save-indicator" id="saveIndicator">● Initialising…</span>
-      <span id="client-filter-chip" class="chip hidden"></span>
-    </div>
+    <!-- MAIN AREA -->
+    <div class="main-area">
+      <!-- TOOLBAR -->
+      <div class="toolbar">
+        <span class="toolbar-label">Data</span>
+        <button class="tool-btn" onclick="exportCSV()">📄 Export CSV</button>
+        <button class="tool-btn" onclick="clearSave()">🗑 Reset data</button>
+        <span class="save-indicator" id="saveIndicator">● Initialising…</span>
+        <span id="client-filter-chip" class="chip hidden"></span>
+      </div>
 
-    <!-- PIPELINE VIEW -->
-    <div id="view-pipeline">
+      <!-- PIPELINE VIEW -->
+      <div id="view-pipeline">
 
-      <!-- SUMMARY -->
-      <div class="summary-row" id="summary-row"></div>
+        <!-- SUMMARY -->
+        <div class="summary-row" id="summary-row"></div>
 
-      <div class="layout">
+        <div class="layout">
 
-        <!-- LEFT: PRIORITY LIST -->
-        <div>
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Priority Order</span>
-              <span class="badge" id="role-count">0 roles</span>
-            </div>
-
-            <!-- Filters -->
-            <div style="padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;gap:6px;">
-              <input id="list-search" class="fi" placeholder="🔍 Search roles..." oninput="filterList()" />
-              <select id="list-filter-status" class="fi" onchange="filterList()">
-                <option value="">All statuses</option>
-                <option value="active">Active</option>
-                <option value="approved">Approved</option>
-                <option value="pending">Pending</option>
-                <option value="onhold">On Hold</option>
-                <option value="filled">Filled</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-
-            <!-- List -->
-            <div class="drag-list-wrap">
-              <div class="drag-list" id="dragList"></div>
-              <div class="drag-list-fade" id="listFade"></div>
-              <div class="scroll-hint" id="scrollHint">↓ scroll for more</div>
-            </div>
-
-            <!-- ADD FORM -->
-            <div class="add-form">
-              <div class="fg">
-                <label class="fl">Role Title</label>
-                <input class="fi" id="f-name" placeholder="e.g. Senior Backend Engineer" />
+          <!-- LEFT: PRIORITY LIST -->
+          <div>
+            <div class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Priority Order</span>
+                <span class="badge" id="role-count">0 roles</span>
               </div>
 
-              <div class="fg2">
-                <div>
-                  <label class="fl">Department</label>
-                  <select class="fi" id="f-dept">
-                    <option>Engineering</option>
-                    <option>Product</option>
-                    <option>Design</option>
-                    <option>Sales</option>
-                    <option>Marketing</option>
-                    <option>Operations</option>
-                    <option>Finance</option>
-                    <option>HR</option>
-                    <option>Data</option>
-                    <option>Other</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="fl">Client</label>
-                  <input class="fi" id="f-client" list="client-options" placeholder="Select or type a client..." />
-                </div>
-
-                <div>
-                  <label class="fl">Priority</label>
-                  <select class="fi" id="f-priority">
-                    <option value="critical">Critical</option>
-                    <option value="high">High</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="fg">
-                <label class="fl">Hiring Status</label>
-                <select class="fi" id="f-status">
-                  <option value="active">Active — Hiring Now</option>
-                  <option value="approved">Approved — Not Started</option>
-                  <option value="pending">Pending Approval</option>
+              <!-- Filters -->
+              <div style="padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;gap:6px;">
+                <input id="list-search" class="fi" placeholder="🔍 Search roles..." oninput="filterList()" />
+                <select id="list-filter-status" class="fi" onchange="filterList()">
+                  <option value="">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="approved">Approved</option>
+                  <option value="pending">Pending</option>
                   <option value="onhold">On Hold</option>
                   <option value="filled">Filled</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
 
-              <div class="form-section-hdr">Timeline</div>
-              <div class="fg2">
-                <div>
-                  <label class="fl">Start Date</label>
-                  <input class="fi" id="f-start" type="date" />
-                </div>
-                <div>
-                  <label class="fl">Completion Date</label>
-                  <input class="fi" id="f-end" type="date" />
-                </div>
+              <!-- List -->
+              <div class="drag-list-wrap">
+                <div class="drag-list" id="dragList"></div>
+                <div class="drag-list-fade" id="listFade"></div>
+                <div class="scroll-hint" id="scrollHint">↓ scroll for more</div>
               </div>
 
-              <label class="check-row">
-                <input type="checkbox" id="f-confirmed" />
-                <span class="checkmark"></span>
-                <span>Resource confirmed — lock bar to green</span>
-              </label>
+              <!-- ADD FORM -->
+              <div class="add-form">
+                <div class="fg">
+                  <label class="fl">Role Title</label>
+                  <input class="fi" id="f-name" placeholder="e.g. Senior Backend Engineer" />
+                </div>
 
-              <div class="form-section-hdr">Salary Range</div>
-              <div class="fg2">
-                <div>
-                  <label class="fl">Best Case (£)</label>
-                  <input class="fi" id="f-sal-best" type="number" min="0" />
+                <div class="fg2">
+                  <div>
+                    <label class="fl">Department</label>
+                    <select class="fi" id="f-dept">
+                      <option>Engineering</option>
+                      <option>Product</option>
+                      <option>Design</option>
+                      <option>Sales</option>
+                      <option>Marketing</option>
+                      <option>Operations</option>
+                      <option>Finance</option>
+                      <option>HR</option>
+                      <option>Data</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="fl">Client</label>
+                    <input class="fi" id="f-client" list="client-options" placeholder="Select or type a client..." />
+                  </div>
+
+                  <div>
+                    <label class="fl">Priority</label>
+                    <select class="fi" id="f-priority">
+                      <option value="critical">Critical</option>
+                      <option value="high">High</option>
+                      <option value="medium" selected>Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label class="fl">Worst Case (£)</label>
-                  <input class="fi" id="f-sal-worst" type="number" min="0" />
+
+                <div class="fg">
+                  <label class="fl">Hiring Status</label>
+                  <select class="fi" id="f-status">
+                    <option value="active">Active — Hiring Now</option>
+                    <option value="approved">Approved — Not Started</option>
+                    <option value="pending">Pending Approval</option>
+                    <option value="onhold">On Hold</option>
+                    <option value="filled">Filled</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
                 </div>
+
+                <div class="form-section-hdr">Timeline</div>
+                <div class="fg2">
+                  <div>
+                    <label class="fl">Start Date</label>
+                    <input class="fi" id="f-start" type="date" />
+                  </div>
+                  <div>
+                    <label class="fl">Completion Date</label>
+                    <input class="fi" id="f-end" type="date" />
+                  </div>
+                </div>
+
+                <label class="check-row">
+                  <input type="checkbox" id="f-confirmed" />
+                  <span class="checkmark"></span>
+                  <span>Resource confirmed — lock bar to green</span>
+                </label>
+
+                <div class="form-section-hdr">Salary Range</div>
+                <div class="fg2">
+                  <div>
+                    <label class="fl">Best Case (£)</label>
+                    <input class="fi" id="f-sal-best" type="number" min="0" />
+                  </div>
+                  <div>
+                    <label class="fl">Worst Case (£)</label>
+                    <input class="fi" id="f-sal-worst" type="number" min="0" />
+                  </div>
+                </div>
+
+                <button class="add-btn" onclick="addRole()">+ Add Role to Pipeline</button>
               </div>
-
-              <button class="add-btn" onclick="addRole()">+ Add Role to Pipeline</button>
             </div>
           </div>
-        </div>
 
-        <!-- RIGHT: GANTT -->
-        <div class="panel gantt-panel">
-          <div class="panel-header">
-            <span class="panel-title">Ramp-Up Gantt — Today → Future</span>
-            <span class="badge" id="gantt-range">—</span>
+          <!-- RIGHT: GANTT -->
+          <div class="panel gantt-panel">
+            <div class="panel-header">
+              <span class="panel-title">Ramp-Up Gantt — Today → Future</span>
+              <span class="badge" id="gantt-range">—</span>
+            </div>
+
+            <div class="gantt-scroll">
+              <div id="gantt-inner"></div>
+            </div>
           </div>
 
-          <div class="gantt-scroll">
-            <div id="gantt-inner"></div>
-          </div>
         </div>
+      </div>
 
+      <!-- DASHBOARD -->
+      <div id="view-dashboard" style="display:none">
+        <div id="dash-inner"></div>
       </div>
     </div>
-
-    <!-- DASHBOARD -->
-    <div id="view-dashboard" style="display:none">
-      <div id="dash-inner"></div>
-    </div>
+  </div>
 
   </div>
 
