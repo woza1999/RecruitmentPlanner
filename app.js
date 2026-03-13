@@ -703,6 +703,59 @@ function showTipText(_e, html) {
   tip.style.display = 'block';
 }
 
+function getRoleListHtml(roles, max = 10) {
+  if (!roles || !roles.length) {
+    return `<div style="font-size:11px;color:var(--muted)">No roles</div>`;
+  }
+  const list = roles.slice(0, max).map(r => `
+    <li>${esc(r.name)}${r.client ? ` <span style="color:var(--muted);font-size:10px;">(${esc(r.client)})</span>` : ''}</li>`).join('');
+  const more = roles.length > max ? `<div style="font-size:10px;color:var(--muted);margin-top:6px;">+${roles.length - max} more…</div>` : '';
+  return `<div style="max-height:180px;overflow:auto;margin-top:6px;"><ul style="margin:0;padding-left:16px;line-height:1.3;font-size:11px;">${list}</ul>${more}</div>`;
+}
+
+function showDashboardTip(_e, kind, key) {
+  const viewRoles = getFilteredRoles();
+  let title = '';
+  let list = [];
+
+  if (kind === 'total') {
+    title = `Total roles (${viewRoles.length})`;
+    list = viewRoles;
+  } else if (kind === 'status') {
+    if (key === 'active/approved') {
+      title = 'Active / Approved roles';
+      list = viewRoles.filter(r => r.status === 'active' || r.status === 'approved');
+    } else {
+      title = `${key.charAt(0).toUpperCase() + key.slice(1)} roles`;
+      list = viewRoles.filter(r => r.status === key);
+    }
+  } else if (kind === 'budget') {
+    const label = key === 'salBest' ? 'Best-case' : 'Worst-case';
+    title = `${label} budget — top roles`;
+    list = [...viewRoles]
+      .filter(r => r[key])
+      .sort((a,b) => (Number(b[key]||0) - Number(a[key]||0)) )
+      .slice(0, 10);
+  } else if (kind === 'client') {
+    title = `Client: ${key}`;
+    list = viewRoles.filter(r => (r.client || 'Unassigned') === key);
+  } else if (kind === 'dept') {
+    title = `Department: ${key}`;
+    list = viewRoles.filter(r => r.dept === key);
+  } else if (kind === 'priority') {
+    title = `Priority: ${key}`;
+    list = viewRoles.filter(r => r.priority === key);
+  } else if (kind === 'urgency') {
+    title = `Urgency: ${key}`;
+    list = viewRoles.filter(r => getUrgency(r) === key);
+  } else {
+    title = 'Roles';
+    list = viewRoles;
+  }
+
+  showTipText(_e, `<div class="tt-name">${esc(title)}</div>${getRoleListHtml(list)}`);
+}
+
 document.addEventListener('mousemove', (e) => {
   const t=document.getElementById('tip');
   if (t && t.style.display === 'block') {
@@ -1047,7 +1100,7 @@ function renderDashboard() {
   const clientRows = Object.values(clientRollup)
     .sort((a,b) => b.urgent - a.urgent)
     .map(c => `
-      <tr onclick="setClientFilter('${c.client === 'Unassigned' ? '' : esc(c.client)}')" style="cursor:pointer" onmouseenter="showTipText(event,'Click to filter by ${esc(c.client)}. ${c.count} roles, ${c.urgent} urgent.')" onmouseleave="hideTip()">
+      <tr onclick="setClientFilter('${c.client === 'Unassigned' ? '' : esc(c.client)}')" style="cursor:pointer" onmouseenter="showDashboardTip(event,'client','${esc(c.client)}')" onmouseleave="hideTip()">
         <td>${esc(c.client)}</td>
         <td>${c.count}</td>
         <td>${fmtMoney(c.best)}</td>
@@ -1078,15 +1131,15 @@ function renderDashboard() {
   const fillRate = Math.round((statusCounts.filled||0)/total*100);
 
   const kpis = [
-    {lbl:'Total Roles', val:total, sub:'in view', acc:'var(--accent)', hint:'How many slots are currently in the pipeline'},
-    {lbl:'Active / Approved', val:(statusCounts.active||0)+(statusCounts.approved||0), sub:'ready to hire', acc:`${C.active}`, hint:'Roles that are actively hiring or approved to start'},
-    {lbl:'Filled', val:statusCounts.filled||0, sub:`${fillRate}% fill rate`, acc:`${C.filled}`, hint:'Roles marked as filled compared to total'},
-    {lbl:'Best-Case Budget', val:fmtMoney(totalBest), sub:'combined annual', acc:`${C.low}`, hint:'Sum of best-case salary estimates for all roles'},
-    {lbl:'Worst-Case Budget', val:fmtMoney(totalWorst), sub:'combined annual', acc:`${C.critical}`, hint:'Sum of worst-case salary estimates for all roles'},
+    {lbl:'Total Roles', val:total, sub:'in view', acc:'var(--accent)', tipKind:'total'},
+    {lbl:'Active / Approved', val:(statusCounts.active||0)+(statusCounts.approved||0), sub:'ready to hire', acc:`${C.active}`, tipKind:'status', tipKey:'active/approved'},
+    {lbl:'Filled', val:statusCounts.filled||0, sub:`${fillRate}% fill rate`, acc:`${C.filled}`, tipKind:'status', tipKey:'filled'},
+    {lbl:'Best-Case Budget', val:fmtMoney(totalBest), sub:'combined annual', acc:`${C.low}`, tipKind:'budget', tipKey:'salBest'},
+    {lbl:'Worst-Case Budget', val:fmtMoney(totalWorst), sub:'combined annual', acc:`${C.critical}`, tipKind:'budget', tipKey:'salWorst'},
   ];
 
   let html = `<div class="dash-kpi-row">${kpis.map(k=>`
-    <div class="dash-kpi" onmouseenter="showTipText(event,'${esc(k.hint)}')" onmouseleave="hideTip()" style="--kpi-accent:${k.acc}">
+    <div class="dash-kpi" onmouseenter="showDashboardTip(event,'${k.tipKind}','${k.tipKey || ''}')" onmouseleave="hideTip()" style="--kpi-accent:${k.acc}">
       <div class="dash-kpi-lbl">${k.lbl}</div>
       <div class="dash-kpi-val">${k.val}</div>
       <div class="dash-kpi-sub">${k.sub}</div>
@@ -1125,7 +1178,7 @@ function renderDashboard() {
         <div class="dash-panel-hdr">Department Breakdown</div>
         <div class="dash-panel-body">
           ${Object.values(deptRollup).map(d => `
-            <div class="stat-bar-row" onmouseenter="showTipText(event,'${esc(d.dept)}: ${d.count} role${d.count===1?'':'s'} (${Math.round(d.count/total*100)}%)')" onmouseleave="hideTip()">
+            <div class="stat-bar-row" onmouseenter="showDashboardTip(event,'dept','${esc(d.dept)}')" onmouseleave="hideTip()">
               <div class="stat-bar-label">${esc(d.dept)}</div>
               <div class="stat-bar-track">
                 <div class="stat-bar-fill" style="width:${(d.count/total*100)}%; background:${C.active}"></div>
@@ -1139,7 +1192,7 @@ function renderDashboard() {
         <div class="dash-panel-hdr">Priority Breakdown</div>
         <div class="dash-panel-body">
           ${['critical','high','medium','low'].map(p => `
-            <div class="stat-bar-row" onmouseenter="showTipText(event,'${p} priority: ${priorityCounts[p]} role${priorityCounts[p]===1?'':'s'} (${Math.round(priorityCounts[p]/total*100)}%)')" onmouseleave="hideTip()">
+            <div class="stat-bar-row" onmouseenter="showDashboardTip(event,'priority','${p}')" onmouseleave="hideTip()">
               <div class="stat-bar-label">${p}</div>
               <div class="stat-bar-track">
                 <div class="stat-bar-fill" style="width:${(priorityCounts[p]/total*100)}%; background:${C[p]}"></div>
@@ -1159,7 +1212,7 @@ function renderDashboard() {
       <div class="dash-panel-body">
         <div class="urg-grid">
           ${['confirmed','green','amber','red','nodate'].map(u => `
-            <div class="urg-box" style="--urg-color:${C[u]}; --urg-border:${C[u]}; --urg-bg:rgba(${C[u].slice(4,-1)},0.1)" onmouseenter="showTipText(event,'${URG_LABEL[u]}: ${urgencyCounts[u]} role${urgencyCounts[u]===1?'':'s'}')" onmouseleave="hideTip()">
+            <div class="urg-box" style="--urg-color:${C[u]}; --urg-border:${C[u]}; --urg-bg:rgba(${C[u].slice(4,-1)},0.1)" onmouseenter="showDashboardTip(event,'urgency','${u}')" onmouseleave="hideTip()">
               <div class="urg-box-val">${urgencyCounts[u]}</div>
               <div style="font-size:10px;color:var(--muted);margin-top:2px;">${URG_LABEL[u]}</div>
             </div>
