@@ -972,6 +972,10 @@ function switchTab(tab) {
   // Show selected view
   document.getElementById('view-' + tab).style.display = 'block';
 
+  // Hide the summary row on the dashboard (it's duplicated there)
+  const summaryRow = document.getElementById('summary-row');
+  if (summaryRow) summaryRow.style.display = tab === 'dashboard' ? 'none' : 'grid';
+
   // Update tab buttons
   document.getElementById('tab-priority')?.classList.toggle('active', tab === 'priority');
   document.getElementById('tab-gantt')?.classList.toggle('active', tab === 'gantt');
@@ -1036,7 +1040,7 @@ function renderDashboard() {
   const clientRows = Object.values(clientRollup)
     .sort((a,b) => b.urgent - a.urgent)
     .map(c => `
-      <tr onclick="setClientFilter('${c.client === 'Unassigned' ? '' : esc(c.client)}')" style="cursor:pointer">
+      <tr onclick="setClientFilter('${c.client === 'Unassigned' ? '' : esc(c.client)}')" style="cursor:pointer" title="Click to filter by ${esc(c.client)}">
         <td>${esc(c.client)}</td>
         <td>${c.count}</td>
         <td>${fmtMoney(c.best)}</td>
@@ -1067,15 +1071,15 @@ function renderDashboard() {
   const fillRate = Math.round((statusCounts.filled||0)/total*100);
 
   const kpis = [
-    {lbl:'Total Roles', val:total, sub:'in view', acc:'var(--accent)'},
-    {lbl:'Active / Approved', val:(statusCounts.active||0)+(statusCounts.approved||0), sub:'ready to hire', acc:`${C.active}`},
-    {lbl:'Filled', val:statusCounts.filled||0, sub:`${fillRate}% fill rate`, acc:`${C.filled}`},
-    {lbl:'Best-Case Budget', val:fmtMoney(totalBest), sub:'combined annual', acc:`${C.low}`},
-    {lbl:'Worst-Case Budget', val:fmtMoney(totalWorst), sub:'combined annual', acc:`${C.critical}`},
+    {lbl:'Total Roles', val:total, sub:'in view', acc:'var(--accent)', hint:'How many slots are currently in the pipeline'},
+    {lbl:'Active / Approved', val:(statusCounts.active||0)+(statusCounts.approved||0), sub:'ready to hire', acc:`${C.active}`, hint:'Roles that are actively hiring or approved to start'},
+    {lbl:'Filled', val:statusCounts.filled||0, sub:`${fillRate}% fill rate`, acc:`${C.filled}`, hint:'Roles marked as filled compared to total'},
+    {lbl:'Best-Case Budget', val:fmtMoney(totalBest), sub:'combined annual', acc:`${C.low}`, hint:'Sum of best-case salary estimates for all roles'},
+    {lbl:'Worst-Case Budget', val:fmtMoney(totalWorst), sub:'combined annual', acc:`${C.critical}`, hint:'Sum of worst-case salary estimates for all roles'},
   ];
 
   let html = `<div class="dash-kpi-row">${kpis.map(k=>`
-    <div class="dash-kpi" style="--kpi-accent:${k.acc}">
+    <div class="dash-kpi" title="${esc(k.hint)}" style="--kpi-accent:${k.acc}">
       <div class="dash-kpi-lbl">${k.lbl}</div>
       <div class="dash-kpi-val">${k.val}</div>
       <div class="dash-kpi-sub">${k.sub}</div>
